@@ -43,6 +43,7 @@ from utils import (
     ndvi,
     ndsi,
     ndbi,
+    ndmi,
     sfdi,
     cdi,
     variation,
@@ -714,6 +715,14 @@ class Landsat(Satellite):
             if C.MSG_FULL:
                 print(f">>> calculating {predictor}")
             bands[predictors.index(predictor), :, :] = ndbi(
+                bands[predictors.index("nir"), :, :],
+                bands[predictors.index("swir1"), :, :],
+            )
+        predictor = "ndmi"
+        if predictor in predictors:
+            if C.MSG_FULL:
+                print(f">>> calculating {predictor}")
+            bands[predictors.index(predictor), :, :] = ndmi(
                 bands[predictors.index("nir"), :, :],
                 bands[predictors.index("swir1"), :, :],
             )

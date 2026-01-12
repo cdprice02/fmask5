@@ -28,3 +28,40 @@ URL_global_gt30 = "https://drive.google.com/file/d/1IhsVi5FKxqEyVs2Vc0F_sg48EIjV
 URL_unet_ncf_l7 = "https://drive.google.com/file/d/1A_cd05CvgRzmiXr_nNhg5yHLS5zpzR6t/view?usp=drive_link"
 URL_unet_ncf_l8 = "https://drive.google.com/file/d/1yysrwxgk8Y6IHPTnvIFHChEEgEfrZTow/view?usp=drive_link"
 URL_unet_ncf_s2 = "https://drive.google.com/file/d/1GpwtS5cZ90NvmLvrtD9jT8X7vCQKd6i_/view?usp=drive_link"
+# physical model limits for PCP tests and more
+PHY_PCP_NDVI_UPPER_LIMIT = 0.8
+PHY_PCP_NDSI_UPPER_LIMIT = 0.8
+PHY_PCP_SWIR2_LOWER_LIMIT = 0.03
+PHY_PCP_TIRS_UPPER_LIMIT = 27  # in degrees
+PHY_PCP_WHITENESS_UPPER_LIMIT = 0.7
+PHY_PCP_HOT_LOWER_LIMIT = 0
+PHY_PCP_4_5_LOWER_LIMIT = 0.75
+
+PHY_SNOW_NDSI_LOWER_LIMIT = 0.15
+PHY_SNOW_NIR_LOWER_LIMIT = 0.11
+PHY_SNOW_GREEN_LOWER_LIMIT = 0.1
+PHY_SNOW_TIRS_UPPER_LIMIT = 10  # in degrees
+
+PHY_ABS_SNOW_UPPER_LIMIT = 0.0009
+
+PHY_WATER_A_NDVI_LOWER_LIMIT = 0
+PHY_WATER_A_NDVI_UPPER_LIMIT = 0.1
+PHY_WATER_A_NIR_UPPER_LIMIT = 0.05
+PHY_WATER_B_NDVI_UPPER_LIMIT = 0.01
+PHY_WATER_B_NIR_UPPER_LIMIT = 0.11
+# begin water adjustment code
+PHY_WATER_USE_NDMI = False
+PHY_WATER_A_NDMI_UPPER_LIMIT = 0.9
+PHY_WATER_B_NDMI_UPPER_LIMIT = 0.9
+# end water adjustment code
+
+PHY_CIRRUS_MULT = 25
+PHY_LAND_TEMP_SPAN = 4  # in degrees
+PHY_WATER_TEMP_MULT = 0.25
+PHY_WATER_BRIGHTNESS_MULT = 1 / 0.11
+PHY_LAND_BRIGHTNESS_SPAN = 0.04
+PHY_SHADOW_FLOOD_FILL_THRESHOLD_1 = 0.15
+PHY_SHADOW_FLOOD_FILL_THRESHOLD_2 = 0.02
+PHY_CIRRUS_LOWER_LIMIT = 0.01
+
+PHY_COLD_CLOUD_THRESHOLD = 35  # in degrees

@@ -3,13 +3,19 @@
 import numpy as np
 import copy
 import pandas
-import constant as C
 from satellite import Data
 import utils
 from scipy.ndimage.filters import uniform_filter
 from sklearn.linear_model import LinearRegression
 from skimage.measure import label, regionprops
 
+# import constant as C
+
+# below import structure was added to experiment with different constant values
+C = __import__("constant")
+def set_constants(version="constant"):
+    global C
+    C = __import__(version)
 
 # np.seterr(invalid='ignore') # ignore the invalid errors
 
@@ -25,24 +31,24 @@ def mask_pcp(data: Data, satu):
     """
     # Basic test
     pcp = np.logical_and(
-        np.logical_and(data.get("ndvi") < 0.8, data.get("ndsi") < 0.8),
-        data.get("swir2") > 0.03,
+        np.logical_and(data.get("ndvi") < C.PHY_PCP_NDVI_UPPER_LIMIT, data.get("ndsi") < C.PHY_PCP_NDSI_UPPER_LIMIT),
+        data.get("swir2") > C.PHY_PCP_SWIR2_LOWER_LIMIT,
     )
 
     # Temperature
     if data.exist("tirs1"):
-        pcp = np.logical_and(pcp, data.get("tirs1") < 27)  # in degree
+        pcp = np.logical_and(pcp, data.get("tirs1") < C.PHY_PCP_TIRS_UPPER_LIMIT)
 
     # Whiteness test
-    pcp = np.logical_and(pcp, data.get("whiteness") < 0.7)
+    pcp = np.logical_and(pcp, data.get("whiteness") < C.PHY_PCP_WHITENESS_UPPER_LIMIT)
 
     # Haze test
-    pcp = np.logical_and(pcp, np.logical_or(data.get("hot") > 0, satu))
+    pcp = np.logical_and(pcp, np.logical_or(data.get("hot") > C.PHY_PCP_HOT_LOWER_LIMIT, satu))
 
     # Ratio 4/5 test
     pcp = np.logical_and(
         pcp,
-        (data.get("nir") / (data.get("swir1") + C.EPS)) > 0.75,
+        (data.get("nir") / (data.get("swir1") + C.EPS)) > C.PHY_PCP_4_5_LOWER_LIMIT,
     )
 
     return pcp
@@ -59,13 +65,13 @@ def mask_snow(data: Data):
     """
     snow = np.logical_and(
         np.logical_and(
-            data.get("ndsi") > 0.15,
-            data.get("nir") > 0.11,
+            data.get("ndsi") > C.PHY_SNOW_NDSI_LOWER_LIMIT,
+            data.get("nir") > C.PHY_SNOW_NIR_LOWER_LIMIT,
         ),
-        data.get("green") > 0.1,
+        data.get("green") > C.PHY_SNOW_GREEN_LOWER_LIMIT,
     )
     if data.exist("tirs1"):
-        snow = np.logical_and(snow, data.get("tirs1") < 10)  # in degree
+        snow = np.logical_and(snow, data.get("tirs1") < C.PHY_SNOW_TIRS_UPPER_LIMIT)
     return snow
 
 
@@ -110,7 +116,7 @@ def mask_abs_snow(data: Data, green_satu, snow, radius=167):
             np.sqrt(green_var)
             * np.sqrt(radius**2 / (radius**2 - 1))
             * (1 - data.get("ndsi"))
-            < 0.0009,
+            < C.PHY_ABS_SNOW_UPPER_LIMIT,
             snow,
         ),
         ~green_satu,
@@ -329,17 +335,32 @@ def mask_water(data: Data, obsmask, snow, swo_erosion_radius = 0):
     Returns:
         bool: water pixels
     """
+    if C.PHY_WATER_USE_NDMI:
+        water = np.logical_or(
+            np.logical_and(
+                np.logical_and(
+                    data.get("ndvi") > C.PHY_WATER_A_NDVI_LOWER_LIMIT,
+                    data.get("ndvi") < C.PHY_WATER_A_NDVI_UPPER_LIMIT,
+                ),
+                data.get("ndmi") < C.PHY_WATER_A_NDMI_UPPER_LIMIT,
+            ),
+            np.logical_and(
+                data.get("ndvi") < C.PHY_WATER_B_NDVI_UPPER_LIMIT,
+                data.get("ndmi") < C.PHY_WATER_B_NDMI_UPPER_LIMIT,
+            ),
+        )
+    else:
     water = np.logical_or(
         np.logical_and(
             np.logical_and(
-                data.get("ndvi") > 0,
-                data.get("ndvi") < 0.1,
+                    data.get("ndvi") > C.PHY_WATER_A_NDVI_LOWER_LIMIT,
+                    data.get("ndvi") < C.PHY_WATER_A_NDVI_UPPER_LIMIT,
             ),
-            data.get("nir") < 0.05,
+                data.get("nir") < C.PHY_WATER_A_NIR_UPPER_LIMIT,
         ),
         np.logical_and(
-            data.get("ndvi") < 0.01,
-            data.get("nir") < 0.11,
+                data.get("ndvi") < C.PHY_WATER_B_NDVI_UPPER_LIMIT,
+                data.get("nir") < C.PHY_WATER_B_NIR_UPPER_LIMIT,
         ),
     )
     water = np.logical_and(water, obsmask)
@@ -371,7 +392,7 @@ def probability_cirrus(cirrus):
     Returns:
         float: Cloud probability of cirrus
     """
-    prob_cir = np.clip(cirrus / 0.04, 0, None)
+    prob_cir = np.clip(cirrus * C.PHY_CIRRUS_MULT, 0, None)
     return prob_cir
 
 
@@ -424,8 +445,8 @@ def probability_land_temperature(temperature, clear_land):
     [temp_low, temp_high] = np.percentile(
         temperature[clear_land], [C.LOW_LEVEL, C.HIGH_LEVEL]
     )
-    temp_low = temp_low - 4  # 4 C-degrees
-    temp_high = temp_high + 4  # 4 C-degrees
+    temp_low = temp_low - C.PHY_LAND_TEMP_SPAN
+    temp_high = temp_high + C.PHY_LAND_TEMP_SPAN
     prob_land_temp = (temp_high - temperature) / (temp_high - temp_low)
     prob_land_temp = np.clip(prob_land_temp, 0, None)
     return prob_land_temp
@@ -444,7 +465,7 @@ def probability_water_temperature(temperature, clear_water):
     """
     prob_water_temp = (
         np.percentile(temperature[clear_water], C.HIGH_LEVEL) - temperature
-    ) / 4  # 4 degree to normalize
+    ) * C.PHY_WATER_TEMP_MULT
     prob_water_temp = np.clip(prob_water_temp, 0, None)
     return prob_water_temp
 
@@ -459,7 +480,7 @@ def probability_water_brightness(data: Data):
     Returns:
     prob_water_bright (numpy.ndarray): The probability of water brightness for each pixel.
     """
-    prob_water_bright = data.get("swir1") / 0.11
+    prob_water_bright = data.get("swir1") * C.PHY_WATER_BRIGHTNESS_MULT
     prob_water_bright = np.clip(prob_water_bright, 0, 1)
     return prob_water_bright
 
@@ -479,8 +500,8 @@ def probability_land_brightness(data, clear_land):
     [hot_low, hot_high] = np.percentile(
         data.get("hot")[clear_land], [C.LOW_LEVEL, C.HIGH_LEVEL]
     )
-    hot_low = hot_low - 0.04  # 0.04 reflectance
-    hot_high = hot_high + 0.04  # 0.04 reflectance
+    hot_low = hot_low - C.PHY_LAND_BRIGHTNESS_SPAN
+    hot_high = hot_high + C.PHY_LAND_BRIGHTNESS_SPAN
     prob_land_bright = (data.get("hot") - hot_low) / (hot_high - hot_low)
     prob_land_bright = np.clip(
         prob_land_bright, 0, 1
@@ -489,7 +510,7 @@ def probability_land_brightness(data, clear_land):
 
 
 def flood_fill_shadow(nir_full, swir1_full, abs_land, obsmask,
-                      threshold=0.15, nir_background=None, swir1_background=None):
+                      threshold=C.PHY_SHADOW_FLOOD_FILL_THRESHOLD_1, nir_background=None, swir1_background=None):
     """
     Masks potential shadow areas in the input images based on flood fill method.
 
@@ -524,7 +545,7 @@ def flood_fill_shadow(nir_full, swir1_full, abs_land, obsmask,
         np.minimum((nir_filled - nir_full)/nir_filled,  (swir1_filled - swir1_full)/swir1_filled) > threshold
     )
 
-def flood_fill_shadow2(nir_full, swir1_full, abs_land, obsmask, threshold=0.02, nir_background=None, swir1_background=None):
+def flood_fill_shadow2(nir_full, swir1_full, abs_land, obsmask, threshold=C.PHY_SHADOW_FLOOD_FILL_THRESHOLD_2, nir_background=None, swir1_background=None):
     """
     Masks potential shadow areas in the input images based on flood fill method.
 
@@ -625,7 +646,7 @@ def compute_cloud_probability_layers(image, min_clear, swo_erosion_radius=0, wat
             dem_max=_dem_max,
         )
         pcp = np.logical_or(
-            pcp, cirrus > 0.01
+            pcp, cirrus > C.PHY_CIRRUS_LOWER_LIMIT
         )  # Update the PCPs with cirrus band TOA > 0.01, which may be cloudy as well
 
     # ABS CLEAR PIXELs with the observation extent
@@ -2458,4 +2479,4 @@ class Physical:
         # the overlap density between cloud and non-cloud pixels to move further
         self.overlap = overlap  # 0% overlap increasing compared to the previous test to alter the physical models
         # extremely cold cloud
-        self.threshold_cold_cloud = 35  # in degree
+        self.threshold_cold_cloud = C.PHY_COLD_CLOUD_THRESHOLD

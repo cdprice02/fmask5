@@ -28,6 +28,7 @@ l8_predictor_full = [
     "ndvi",
     "ndsi",
     "ndbi",
+    "ndmi",
     "sfdi",
     "var_nir",
     "dem",
@@ -48,6 +49,7 @@ l8_predictor_cloud_phy = [
     "ndvi",
     "ndsi",
     "ndbi",
+    "ndmi",
     "dem",
     "swo",
 ]

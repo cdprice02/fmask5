@@ -36,19 +36,19 @@ from scipy.ndimage import convolve
 # ignore the invalid errors
 np.seterr(invalid='ignore') 
 
-# Use non-GUI backend only if running in Jupyter Notebook
-# Prevents X server errors when running in a headless environment
-def is_running_in_jupyter():
-    """Check if the script is running inside a Jupyter Notebook."""
-    try:
-        from IPython import get_ipython
-        return get_ipython() is not None
-    except ImportError:
-        return False
-if is_running_in_jupyter():
-    mpl.use('TkAgg')
-else:
-    mpl.use('Agg')
+# # Use non-GUI backend only if running in Jupyter Notebook
+# # Prevents X server errors when running in a headless environment
+# def is_running_in_jupyter():
+#     """Check if the script is running inside a Jupyter Notebook."""
+#     try:
+#         from IPython import get_ipython
+#         return get_ipython() is not None
+#     except ImportError:
+#         return False
+# if is_running_in_jupyter():
+#     mpl.use('TkAgg')
+# else:
+#     mpl.use('Agg')
 
 
 # Functions of index calculationg
@@ -102,6 +102,18 @@ def ndbi(nir, swir):
     _ndbi = np.where((swir + nir + C.EPS) == 0, 0, (swir - nir) / (swir + nir + C.EPS))
 
     return _ndbi
+
+def ndmi(nir, swir):
+    """Normalized Difference Moisture Index
+
+    Args:
+        nir (float): NIR band
+        swir (float): SWIR1 band
+
+    Returns:
+        float: ndmi
+    """
+    return -ndbi(nir, swir)
 
 def hot(blue, red):
     """HOT

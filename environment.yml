@@ -1,0 +1,21 @@
+name: fmask
+
+channels:
+  - conda-forge
+
+dependencies:
+  - click
+  - pandas
+  - rasterio
+  - scikit-learn
+  - scikit-image
+  - pyproj
+  - matplotlib
+  - gdal
+  - ipykernel
+  - tk
+  - pytorch
+  - segmentation-models-pytorch
+  - lightgbm
+
+variables: {}

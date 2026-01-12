@@ -1,5 +1,5 @@
-# Ignore notebook files
-*.ipynb
+# Ignore DS_Store
+.DS_Store
 
 # Ignore data files
 *.tif

@@ -1,6 +1,9 @@
 # Ignore DS_Store
 .DS_Store
 
+# Ignore notebook files
+*.ipynb
+
 # Ignore data files
 *.tif
 *.csv
@@ -21,6 +24,8 @@
 # Ignore directories
 data/job/
 data/__pycache__/
+data/in/
+data/out/
 data/create_train_data_patch.py
 data/create_train_data_pixel_merge.py
 data/create_train_data_pixel.py

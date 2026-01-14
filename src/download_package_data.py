@@ -13,7 +13,8 @@ Usage:
 import os
 import requests
 import click
-import constant as C
+
+C = __import__(os.getenv("PHY_CONST_SRC", "constant"))
 
 def download_data_from_google_drive(source_url, destination):
     """

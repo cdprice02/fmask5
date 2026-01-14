@@ -51,7 +51,9 @@ from utils import (
     normalize_datacube,
     fill_nan_wise
 )
-import constant as C
+
+C = __import__(os.getenv("PHY_CONST_SRC", "constant"))
+
 
 
 class Data:

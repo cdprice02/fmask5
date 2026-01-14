@@ -11,11 +11,12 @@ import utils
 from unetlib import UNet
 from lightgbmlib import Dataset as PixeDataset
 from lightgbmlib import LightGBM
-import constant as C
 from phylib import Physical, segment_cloud_objects
 from bitlib import BitLayer
 import numpy as np
 from skimage.filters import threshold_otsu
+
+C = __import__(os.getenv("PHY_CONST_SRC", "constant"))
 np.seterr(invalid='ignore') # ignore the invalid errors
 
 class Fmask(object):

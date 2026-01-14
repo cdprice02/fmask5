@@ -14,7 +14,8 @@ import segmentation_models_pytorch as smp
 from pathlib import Path
 from utils import normalize_datacube
 import time
-import constant as C
+
+C = __import__(os.getenv("PHY_CONST_SRC", "constant"))
 np.seterr(invalid='ignore') # ignore the invalid errors
 
 
@@ -668,7 +669,7 @@ class UNet(object):
 
         if torch.cuda.is_available():
             self.device = "cuda"
-        elif torch.has_mps:  # mac's gpu
+        elif torch.backends.mps.is_built():  # mac's gpu
             self.device = "mps"
         else:  # cpu
             self.device = "cpu"

@@ -7,9 +7,10 @@ import pickle
 from pathlib import Path
 import numpy as np
 import pandas as pd
-import constant as C
 import lightgbm as lgb
 from utils import collect_sample_pixel
+
+C = __import__(os.getenv("PHY_CONST_SRC", "constant"))
 np.seterr(invalid='ignore') # ignore the invalid errors
 
 class Dataset:

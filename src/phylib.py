@@ -9,13 +9,8 @@ from scipy.ndimage.filters import uniform_filter
 from sklearn.linear_model import LinearRegression
 from skimage.measure import label, regionprops
 
-# import constant as C
-
-# below import structure was added to experiment with different constant values
-C = __import__("constant")
-def set_constants(version="constant"):
-    global C
-    C = __import__(version)
+import os
+C = __import__(os.getenv("PHY_CONST_SRC", "constant"))
 
 # np.seterr(invalid='ignore') # ignore the invalid errors
 

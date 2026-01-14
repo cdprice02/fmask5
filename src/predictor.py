@@ -1,4 +1,5 @@
 """define default predictors"""
+
 l8_dataset = [
     "L8BIOME",
     "L8SPARCS",
@@ -28,7 +29,6 @@ l8_predictor_full = [
     "ndvi",
     "ndsi",
     "ndbi",
-    "ndmi",
     "sfdi",
     "var_nir",
     "dem",
@@ -49,7 +49,6 @@ l8_predictor_cloud_phy = [
     "ndvi",
     "ndsi",
     "ndbi",
-    "ndmi",
     "dem",
     "swo",
 ]
@@ -91,11 +90,7 @@ l8_predictor_cloud_cnn = [
     "swo",
 ]  # predictors for cloud CNN model
 
-l8_predictor_shadow_cnn = [
-    "nir",
-    "swir1",
-    "dem"
-]  # predictors for shadow CNN model
+l8_predictor_shadow_cnn = ["nir", "swir1", "dem"]  # predictors for shadow CNN model
 
 l7_predictor_full = [
     "blue",
@@ -164,11 +159,7 @@ l7_predictor_cloud_cnn = [
     "swo",
 ]  # predictors for cloud CNN model
 
-l7_predictor_shadow_cnn = [
-    "nir",
-    "swir1",
-    "dem"
-]  # predictors for shadow CNN model
+l7_predictor_shadow_cnn = ["nir", "swir1", "dem"]  # predictors for shadow CNN model
 
 s2_predictor_full = [
     "coastal",

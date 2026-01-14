@@ -335,32 +335,17 @@ def mask_water(data: Data, obsmask, snow, swo_erosion_radius = 0):
     Returns:
         bool: water pixels
     """
-    if C.PHY_WATER_USE_NDMI:
-        water = np.logical_or(
-            np.logical_and(
-                np.logical_and(
-                    data.get("ndvi") > C.PHY_WATER_A_NDVI_LOWER_LIMIT,
-                    data.get("ndvi") < C.PHY_WATER_A_NDVI_UPPER_LIMIT,
-                ),
-                data.get("ndmi") < C.PHY_WATER_A_NDMI_UPPER_LIMIT,
-            ),
-            np.logical_and(
-                data.get("ndvi") < C.PHY_WATER_B_NDVI_UPPER_LIMIT,
-                data.get("ndmi") < C.PHY_WATER_B_NDMI_UPPER_LIMIT,
-            ),
-        )
-    else:
     water = np.logical_or(
         np.logical_and(
             np.logical_and(
-                    data.get("ndvi") > C.PHY_WATER_A_NDVI_LOWER_LIMIT,
-                    data.get("ndvi") < C.PHY_WATER_A_NDVI_UPPER_LIMIT,
+                data.get("ndvi") > C.PHY_WATER_A_NDVI_LOWER_LIMIT,
+                data.get("ndvi") < C.PHY_WATER_A_NDVI_UPPER_LIMIT,
             ),
-                data.get("nir") < C.PHY_WATER_A_NIR_UPPER_LIMIT,
+            data.get("nir") < C.PHY_WATER_A_NIR_UPPER_LIMIT,
         ),
         np.logical_and(
-                data.get("ndvi") < C.PHY_WATER_B_NDVI_UPPER_LIMIT,
-                data.get("nir") < C.PHY_WATER_B_NIR_UPPER_LIMIT,
+            data.get("ndvi") < C.PHY_WATER_B_NDVI_UPPER_LIMIT,
+            data.get("nir") < C.PHY_WATER_B_NIR_UPPER_LIMIT,
         ),
     )
     water = np.logical_and(water, obsmask)

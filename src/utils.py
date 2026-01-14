@@ -30,25 +30,26 @@ from skimage.morphology import binary_dilation, binary_erosion, reconstruction
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
-import constant as C
 from scipy.ndimage import convolve
+
+C = __import__(os.getenv("PHY_CONST_SRC", "constant"))
 
 # ignore the invalid errors
 np.seterr(invalid='ignore') 
 
-# # Use non-GUI backend only if running in Jupyter Notebook
-# # Prevents X server errors when running in a headless environment
-# def is_running_in_jupyter():
-#     """Check if the script is running inside a Jupyter Notebook."""
-#     try:
-#         from IPython import get_ipython
-#         return get_ipython() is not None
-#     except ImportError:
-#         return False
-# if is_running_in_jupyter():
-#     mpl.use('TkAgg')
-# else:
-#     mpl.use('Agg')
+# Use non-GUI backend only if running in Jupyter Notebook
+# Prevents X server errors when running in a headless environment
+def is_running_in_jupyter():
+    """Check if the script is running inside a Jupyter Notebook."""
+    try:
+        from IPython import get_ipython
+        return get_ipython() is not None
+    except ImportError:
+        return False
+if is_running_in_jupyter():
+    mpl.use('TkAgg')
+else:
+    mpl.use('Agg')
 
 
 # Functions of index calculationg
@@ -102,18 +103,6 @@ def ndbi(nir, swir):
     _ndbi = np.where((swir + nir + C.EPS) == 0, 0, (swir - nir) / (swir + nir + C.EPS))
 
     return _ndbi
-
-def ndmi(nir, swir):
-    """Normalized Difference Moisture Index
-
-    Args:
-        nir (float): NIR band
-        swir (float): SWIR1 band
-
-    Returns:
-        float: ndmi
-    """
-    return -ndbi(nir, swir)
 
 def hot(blue, red):
     """HOT
@@ -971,9 +960,7 @@ def normalize_image(image, **kwargs):
     else:
         image_valid = image[np.where(obsmask)].astype("float")
 
-    [min_val, max_val] = np.percentile(
-        image_valid, percentile_range, interpolation="linear"
-    )
+    [min_val, max_val] = np.percentile(image_valid, percentile_range, method="linear")
     # normal_minmax_range = [min_val, max_val]
     # rescale
     image_scaled = ((image - min_val) / (max_val - min_val + C.EPS)) * (

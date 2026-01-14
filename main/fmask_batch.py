@@ -37,7 +37,6 @@ import sys
 from pathlib import Path
 import click
 import glob
-from pathlib import Path
 sys.path.append(
     str(Path(__file__).parent.parent.joinpath("src"))
 )
@@ -60,7 +59,7 @@ from fmask import fmask_physical, fmask_lightgbm, fmask_unet, fmask_lpl,  fmask_
     help="Destination directory for results. If not provided, results are saved in the resource directory.",
     default="/gpfs/sharedfs1/zhulab/Shi/ProjectCloudDetectionFmask5/Validation/Sentinel2_results",
 )
-@click.option("--skip_existing", "-s", type=click.Choice(["yes", "no", "Yes", "No", "YES", "NO"]), help="Skip processing if results already exist (set to 0 to force generation).", default="yes")
+@click.option("--skip_existing", "-se", type=click.Choice(["yes", "no", "Yes", "No", "YES", "NO"]), help="Skip processing if results already exist (set to 0 to force generation).", default="yes")
 @click.option("--save_metadata", "-md", type=click.Choice(["yes", "no", "Yes", "No", "YES", "NO"]), help="Save model metadata to a CSV file.", default="yes")
 @click.option("--display_fmask", "-df", type=click.Choice(["yes", "no", "Yes", "No", "YES", "NO"]), help="Display and save the Fmask result as a PNG file.", default="yes")
 @click.option("--display_image", "-di", type=click.Choice(["yes", "no", "Yes", "No", "YES", "NO"]), help="Display and save color composite images as PNG files.", default="no")

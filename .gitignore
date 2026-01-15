@@ -1,43 +1,34 @@
 # Ignore DS_Store
 .DS_Store
 
+# Ignore Python cache files
+**/__pycache__/
+**/.ipynb_checkpoints/
+
 # Ignore notebook files
 *.ipynb
 
-# Ignore data files
+# Ignore data files/directories
 *.tif
 *.csv
 *.xlsx
+data/*
+!data
+validation/*
+!validation
 
-# Ignore the model with large file
-# *.pk
+# Ignore large model files
+model/*
+!model/*.txt
+*.pk
 *.pt
+
+# Ignore figures
+figure/*
+!figure
+*.png
+*.tif
 
 # Ignore SLURM output
 *.out
 *.err
-
-# Ignore figures
-*.png
-*.tif
-
-# Ignore directories
-data/job/
-data/__pycache__/
-data/in/
-data/out/
-data/create_train_data_patch.py
-data/create_train_data_pixel_merge.py
-data/create_train_data_pixel.py
-data/s2iris.py
-model/job/
-model/train_rf_cloud.py
-model/train_unet_cloud.py
-figure/record.py
-figure/collect_cloud_mask.py
-figure/output/
-figure/job/
-figure/__pycache__/
-validation/
-.ipynb_checkpoints/
-__pycache__/

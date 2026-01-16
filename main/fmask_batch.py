@@ -130,6 +130,9 @@ def main(model, dcloud, dshadow, dsnow, imagedir, output, skip_existing, save_me
             print(f"Model {model} is not supported.")
             return
 
+    print(f"Core {ci}/{cn}: Completed processing.")
+
+
 # main port to run the fmask by command line
 if __name__ == "__main__":
     main()

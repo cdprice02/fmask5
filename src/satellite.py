@@ -52,7 +52,7 @@ from utils import (
     fill_nan_wise
 )
 
-C = __import__(os.getenv("PHY_CONST_SRC", "constant"))
+from config import CONFIG as C
 
 
 
@@ -479,7 +479,7 @@ class Landsat(Satellite):
         Returns:
             2d array: image of the band
         """
-        if C.MSG_FULL:
+        if C["MSG_FULL"]:
             print(f">>> loading {band.lower()} in {level.lower()}")
         # specify the band information
         band = band.upper()  # uppercase
@@ -555,7 +555,7 @@ class Landsat(Satellite):
                 self.metadata["LEVEL1_THERMAL_CONSTANTS"][f"K2_CONSTANT_BAND_{band_id}"]
             )
             image = (
-                image + C.EPS
+                image + C["EPS"]
             )  #  + np.finfo(float).eps is to avoid divided by 0, of which pixels are filled, and at last fmask will filter them out
             image = K2_CONSTANT / np.log(K1_CONSTANT / image + 1)  # np.log is ln
             # convert from Kelvin to Celcius
@@ -572,7 +572,7 @@ class Landsat(Satellite):
         Returns:
             float: Angle band
         """
-        if C.MSG_FULL:
+        if C["MSG_FULL"]:
             print(f">>> loading {angle.lower()} in {unit.lower()}")
         angle = angle.upper()  # uppercase
         unit = unit.upper()  # uppercase
@@ -678,7 +678,7 @@ class Landsat(Satellite):
         # spectral index
         predictor = "hot"
         if predictor in predictors:
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(f">>> calculating {predictor}")
             bands[predictors.index(predictor), :, :] = hot(
                 bands[predictors.index("blue"), :, :],
@@ -686,7 +686,7 @@ class Landsat(Satellite):
             )
         predictor = "whiteness"
         if predictor in predictors:
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(f">>> calculating {predictor}")
             bands[predictors.index(predictor), :, :] = whiteness(
                 bands[predictors.index("blue"), :, :],
@@ -697,7 +697,7 @@ class Landsat(Satellite):
 
         predictor = "ndvi"
         if predictor in predictors:
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(f">>> calculating {predictor}")
             bands[predictors.index(predictor), :, :] = ndvi(
                 bands[predictors.index("red"), :, :],
@@ -705,7 +705,7 @@ class Landsat(Satellite):
             )
         predictor = "ndsi"
         if predictor in predictors:
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(f">>> calculating {predictor}")
             bands[predictors.index(predictor), :, :] = ndsi(
                 bands[predictors.index("green"), :, :],
@@ -713,7 +713,7 @@ class Landsat(Satellite):
             )
         predictor = "ndbi"
         if predictor in predictors:
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(f">>> calculating {predictor}")
             bands[predictors.index(predictor), :, :] = ndbi(
                 bands[predictors.index("nir"), :, :],
@@ -722,7 +722,7 @@ class Landsat(Satellite):
         # spatial index
         predictor = "sfdi"
         if predictor in predictors:
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(f">>> calculating {predictor}")
             bands[predictors.index(predictor), :, :] = sfdi(
                 bands[predictors.index("blue"), :, :],
@@ -731,7 +731,7 @@ class Landsat(Satellite):
             )
         predictor = "var_nir"
         if predictor in predictors:
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(f">>> calculating {predictor}")
             bands[predictors.index(predictor), :, :] = variation(
                 bands[predictors.index("nir"), :, :]
@@ -745,8 +745,8 @@ class Landsat(Satellite):
         predictor = "swo"
         if predictor in predictors:
             # check the gswo is available for this imagery or not
-            if (self.lat_north <= C.NORTH_LAT_GSWO) and (
-                self.lat_south >= C.SOUTH_LAT_GSWO
+            if (self.lat_north <= C["NORTH_LAT_GSWO"]) and (
+                self.lat_south >= C["SOUTH_LAT_GSWO"]
             ):
                 bands[predictors.index(predictor), :, :] = gen_gswo(
                     self.profile
@@ -756,7 +756,7 @@ class Landsat(Satellite):
         # Fix the pixels in error
         # check any nan values in the bands
         if np.any(np.isnan(bands)):
-            bands = np.nan_to_num(bands, nan=C.EPS, posinf=C.EPS, neginf=C.EPS)
+            bands = np.nan_to_num(bands, nan=C["EPS"], posinf=C["EPS"], neginf=C["EPS"])
 
         # return the band name and data
         return Data(bands, predictors), statu
@@ -905,7 +905,7 @@ class Sentinel2(Satellite):
             - The image data is returned as a numpy array, scaled to the range [0, 1] by dividing by 10000 if the level is "TOA".
         """
 
-        if C.MSG_FULL:
+        if C["MSG_FULL"]:
             print(f">>> loading {band.lower()} in {level.lower()}")
         # The No Data value is represented as 0 in the L1C product. see https://sentinels.copernicus.eu/web/sentinel/technical-guides/sentinel-2-msi/level-1c/product-formatting
         src_nodata = self.nodata_index
@@ -1048,7 +1048,7 @@ class Sentinel2(Satellite):
 
         """
 
-        if C.MSG_FULL:
+        if C["MSG_FULL"]:
             print(f">>> loading {angle.lower()} in {unit.lower()}")
 
         if angle.upper() == "SENSOR_AZIMUTH":
@@ -1156,7 +1156,7 @@ class Sentinel2(Satellite):
         # spectral index
         predictor = "hot"
         if predictor in predictors:
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(f">>> calculating {predictor}")
             bands[predictors.index(predictor), :, :] = hot(
                 bands[predictors.index("blue"), :, :],
@@ -1171,7 +1171,7 @@ class Sentinel2(Satellite):
 
         predictor = "whiteness"
         if predictor in predictors:
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(f">>> calculating {predictor}")
             bands[predictors.index(predictor), :, :] = whiteness(
                 bands[predictors.index("blue"), :, :],
@@ -1182,7 +1182,7 @@ class Sentinel2(Satellite):
 
         predictor = "ndvi"
         if predictor in predictors:
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(f">>> calculating {predictor}")
             bands[predictors.index(predictor), :, :] = ndvi(
                 bands[predictors.index("red"), :, :],
@@ -1190,7 +1190,7 @@ class Sentinel2(Satellite):
             )
         predictor = "ndsi"
         if predictor in predictors:
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(f">>> calculating {predictor}")
             bands[predictors.index(predictor), :, :] = ndsi(
                 bands[predictors.index("green"), :, :],
@@ -1198,7 +1198,7 @@ class Sentinel2(Satellite):
             )
         predictor = "ndbi"
         if predictor in predictors:
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(f">>> calculating {predictor}")
             bands[predictors.index(predictor), :, :] = ndbi(
                 bands[predictors.index("nir"), :, :],
@@ -1207,7 +1207,7 @@ class Sentinel2(Satellite):
         # spatial index
         predictor = "cdi"
         if predictor in predictors:
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(f">>> calculating {predictor}")
             bands[predictors.index(predictor), :, :] = cdi(
                 bands[predictors.index("vre3"), :, :],
@@ -1216,7 +1216,7 @@ class Sentinel2(Satellite):
             )
         predictor = "sfdi"
         if predictor in predictors:
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(f">>> calculating {predictor}")
             bands[predictors.index(predictor), :, :] = sfdi(
                 bands[predictors.index("blue"), :, :],
@@ -1225,7 +1225,7 @@ class Sentinel2(Satellite):
             )
         predictor = "var_nir"
         if predictor in predictors:
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(f">>> calculating {predictor}")
             bands[predictors.index(predictor), :, :] = variation(
                 bands[predictors.index("nir"), :, :]
@@ -1239,8 +1239,8 @@ class Sentinel2(Satellite):
         predictor = "swo"
         if predictor in predictors:
             # check the gswo is available for this imagery or not
-            if (self.lat_north <= C.NORTH_LAT_GSWO) and (
-                self.lat_south >= C.SOUTH_LAT_GSWO
+            if (self.lat_north <= C["NORTH_LAT_GSWO"]) and (
+                self.lat_south >= C["SOUTH_LAT_GSWO"]
             ):
                 bands[predictors.index(predictor), :, :] = gen_gswo(
                     self.profile
@@ -1248,7 +1248,7 @@ class Sentinel2(Satellite):
             # default value will be zero still, which will not used in the water mask
 
         # Fix the pixels in error
-        bands = np.nan_to_num(bands, nan=C.EPS, posinf=C.EPS, neginf=C.EPS)
+        bands = np.nan_to_num(bands, nan=C["EPS"], posinf=C["EPS"], neginf=C["EPS"])
 
         # return the band name and data
         return Data(bands, predictors), statu

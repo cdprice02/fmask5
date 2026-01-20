@@ -15,7 +15,7 @@ from pathlib import Path
 from utils import normalize_datacube
 import time
 
-C = __import__(os.getenv("PHY_CONST_SRC", "constant"))
+from config import CONFIG as C
 np.seterr(invalid='ignore') # ignore the invalid errors
 
 
@@ -76,17 +76,17 @@ class Dataset(BaseDataset):
         _label = label.copy()
         for icls, cls in enumerate(self.classes):
             if cls == "noncloud":
-                label[_label == C.LABEL_CLEAR] = icls
-                label[_label == C.LABEL_SHADOW] = icls
+                label[_label == C["LABEL_CLEAR"]] = icls
+                label[_label == C["LABEL_SHADOW"]] = icls
             elif cls == "cloud":
-                label[_label == C.LABEL_CLOUD] = icls
+                label[_label == C["LABEL_CLOUD"]] = icls
             elif cls == "nonshadow":
-                label[_label == C.LABEL_CLEAR] = icls
-                label[_label == C.LABEL_CLOUD] = icls
+                label[_label == C["LABEL_CLEAR"]] = icls
+                label[_label == C["LABEL_CLOUD"]] = icls
             elif cls == "shadow":
-                label[_label == C.LABEL_SHADOW] = icls
+                label[_label == C["LABEL_SHADOW"]] = icls
             elif cls == "filled":
-                label[_label == C.LABEL_FILL] = icls
+                label[_label == C["LABEL_FILL"]] = icls
         label = from_numpy(label)  # transform as tensor
 
         return image, label
@@ -130,12 +130,12 @@ class Dataset(BaseDataset):
                 if not any(ex in img for ex in exclude)
             ]
             # print the exclude information
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 for ex in exclude:
                     print(f">>> excluding {ex} from the training dataset")
                 print(f">>> having {len(self.ids)} patches ({_num_images - len(self.ids)} excluded)")
         else:
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(f">>> having on {len(self.ids)} patches")
         del _num_images
 
@@ -306,7 +306,7 @@ class UNet(object):
             self.patch_size,  # patch size
             classes=self.classes,  # classes
             exclude=exclude,  # exclude the image that will be used to train the model
-            random_seed=C.RANDOM_SEED,
+            random_seed=C["RANDOM_SEED"],
         )
         if patch_index is not None:
             self.train_dataset.set_data_index(patch_index)
@@ -345,7 +345,7 @@ class UNet(object):
             self.train_dataset,
             batch_size=self.batch_size,
             generator=torch.Generator().manual_seed(
-                C.RANDOM_SEED
+                C["RANDOM_SEED"]
             ),  # to preserve reproducibility
             shuffle=self.shuffle,
             num_workers=self.workers,
@@ -395,24 +395,24 @@ class UNet(object):
                 del epoch_record
         # if all models exist, then return
         if epoch_start > self.epoch:
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(f">>> model has been trained to the maximum epoch {self.epoch}")
             return
         # Train the model
-        if C.MSG_FULL:
+        if C["MSG_FULL"]:
             print(f">>> training model-{basename} by {self.device}")
         self.model.train() # Make sure gradient tracking is on, and do a pass over the data
         for epoch in range(epoch_start, self.epoch + 1):  # range starts at 1
             # recording the running time in secs
             start_epoch = time.time()
             # msg
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(f">>>> epoch {epoch:03d}/{self.epoch:03d}", end="")
             # Make sure gradient tracking is on, and do a pass over the data
             self.model.train()
             model_loss_train, model_overall_train = 0.0, 0.0
             for data in train_dataset_loader:
-                # if C.MSG_FULL:
+                # if C["MSG_FULL"]:
                 #     print(".", end="")
                 # data loaded
                 image_train, label_train = data
@@ -438,7 +438,7 @@ class UNet(object):
             model_overall_test = np.nan  # preserve the nan value
 
             # msg
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(
                     f" with loss = {model_loss_train:0.4f} & overall = {model_overall_train:.4f} in {train_time/60:03.2f} mins"
                 )
@@ -528,7 +528,7 @@ class UNet(object):
                 self.image.data.get(self.predictors), obsmask=self.image.obsmask
             )
     
-        if C.MSG_FULL:
+        if C["MSG_FULL"]:
             print(">>> classifying image by unet")
     
         # Convert the datacube to tensor if it is not
@@ -721,7 +721,7 @@ class UNet(object):
     def tune(self, reference, normalize=True):
         "Tune the pretrained model based on exisiting full image"
         if self.tune_epoch > 0: # only when we will tune the model by the full image
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(">>> tuning unet")
             # rescale the date cube
             if normalize:
@@ -810,7 +810,7 @@ class UNet(object):
                 # loss per epoch
                 model_loss_train = model_loss_train / len(patchs_off)
                 # msg
-                if C.MSG_FULL:
+                if C["MSG_FULL"]:
                     print(
                         ">>>> epoch {0:02d} with loss of {1:0.3f} in {2:03.0f} secs".format(
                             ei, model_loss_train, train_time

@@ -10,7 +10,7 @@ import pandas as pd
 import lightgbm as lgb
 from utils import collect_sample_pixel
 
-C = __import__(os.getenv("PHY_CONST_SRC", "constant"))
+from config import CONFIG as C
 np.seterr(invalid='ignore') # ignore the invalid errors
 
 class Dataset:
@@ -134,7 +134,7 @@ class Dataset:
         # load packaged training dataset
         filepath_training_data = os.path.join(self.directory, "pixelbase.csv")
         if os.path.exists(filepath_training_data):
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(">>> loading all training data from database")
             training_data = pd.read_csv(os.path.join(filepath_training_data))
             # select the data based on the datasets
@@ -169,15 +169,15 @@ class Dataset:
                 label_cls = self.classes.index(cls)
                 if cls == "noncloud":
                     training_data["label"] = training_data["label"].replace(
-                        C.LABEL_CLEAR, label_cls
+                        C["LABEL_CLEAR"], label_cls
                     )
                     training_data["label"] = training_data["label"].replace(
-                        C.LABEL_SHADOW, label_cls
+                        C["LABEL_SHADOW"], label_cls
                     )
                     continue
                 if cls == "cloud":
                     training_data["label"] = training_data["label"].replace(
-                        C.LABEL_CLOUD, label_cls
+                        C["LABEL_CLOUD"], label_cls
                     )
                     continue
         self.data = training_data
@@ -186,7 +186,7 @@ class Dataset:
         """select the training data based on the cloud and non-cloud sampling strategy.
         The sampling_methods have to be same as to the order of classes
         """
-        if C.MSG_FULL:
+        if C["MSG_FULL"]:
             print(">>> selecting training samples")
 
         # determine the number of samples for each class by equal, transfering to list or array
@@ -196,9 +196,7 @@ class Dataset:
         # select the samples based on the sampling strategy
         for i, cls in enumerate(self.classes):
             # index as the pixel value, starting from 0
-            label_cls = self.classes.index(
-                cls
-            )
+            label_cls = self.classes.index(cls)
             num_cls = numbers[i]  # the number of the samples for the class
             # processing cloud
             if cls == "cloud":
@@ -208,7 +206,7 @@ class Dataset:
                         [
                             training_data,
                             self.data[self.data["label"] == label_cls].sample(
-                                n=num_cls, replace=False, random_state=C.RANDOM_SEED
+                                n=num_cls, replace=False, random_state=C["RANDOM_SEED"]
                             ),
                         ]
                     )
@@ -222,7 +220,7 @@ class Dataset:
                                 (self.data["label"] == label_cls)
                                 & (self.data["cloud_scene_percent"] < 0.35)
                             ].sample(
-                                n=num_cls_sub, replace=False, random_state=C.RANDOM_SEED
+                                n=num_cls_sub, replace=False, random_state=C["RANDOM_SEED"]
                             ),
                         ]
                     )
@@ -235,7 +233,7 @@ class Dataset:
                                 & (self.data["cloud_scene_percent"] >= 0.35)
                                 & (self.data["cloud_scene_percent"] <= 0.65)
                             ].sample(
-                                n=num_cls_sub, replace=False, random_state=C.RANDOM_SEED
+                                n=num_cls_sub, replace=False, random_state=C["RANDOM_SEED"]
                             ),
                         ]
                     )
@@ -247,7 +245,7 @@ class Dataset:
                                 (self.data["label"] == label_cls)
                                 & (self.data["cloud_scene_percent"] > 0.65)
                             ].sample(
-                                n=num_cls_sub, replace=False, random_state=C.RANDOM_SEED
+                                n=num_cls_sub, replace=False, random_state=C["RANDOM_SEED"]
                             ),
                         ]
                     )
@@ -260,7 +258,7 @@ class Dataset:
                         [
                             training_data,
                             self.data[self.data["label"] == label_cls].sample(
-                                n=num_cls, replace=False, random_state=C.RANDOM_SEED
+                                n=num_cls, replace=False, random_state=C["RANDOM_SEED"]
                             ),
                         ]
                     )
@@ -279,7 +277,7 @@ class Dataset:
                                 ].sample(
                                     n=num_cover,
                                     replace=False,
-                                    random_state=C.RANDOM_SEED,
+                                    random_state=C["RANDOM_SEED"],
                                 ),
                             ]
                         )
@@ -320,7 +318,7 @@ class Dataset:
                     self.data = pd.concat(
                         [
                             self.data.sample(
-                                n=len(self.data) - len(nsamp), random_state=C.RANDOM_SEED
+                                n=len(self.data) - len(nsamp), random_state=C["RANDOM_SEED"]
                             ),
                             nsamp,
                         ]
@@ -425,7 +423,7 @@ class LightGBM(object):
                                    max_depth = self.max_depth,
                                    min_data_in_leaf = self.min_data_in_leaf,
                                    n_estimators=self.ntrees,
-                                   random_state = C.RANDOM_SEED,
+                                   random_state = C["RANDOM_SEED"],
                                    n_jobs  = 1, # only use 1 core to process, since we can use parallel processing for each individual image
                                    verbose = -1) # no verbose, do not show the warnings in the progress
     
@@ -433,12 +431,12 @@ class LightGBM(object):
             self.predictors is None
         ):  # if we do not select the predictors, we will use all the columns except the label
             #
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(f">>> training lightgbm {self.ntrees} tree {self.num_leaves}, num_leaves, and {self.min_data_in_leaf} min_data_in_leaf based on {self.sample.length} samples")
                 print(f">>> using {len(self.sample.data.head())} predictors: {self.sample.data.head()}")
             model.fit(self.sample.get(), self.sample.get("label"))
         else:
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(f">>> training lightgbm {self.ntrees} tree based on {self.sample.length} samples")
                 print(f">>> using {len(self.predictors)} predictors: {self.predictors}")
             model.fit(self.sample.get(self.predictors), self.sample.get("label"))
@@ -500,7 +498,7 @@ class LightGBM(object):
         Example usage:
             image_class, image_prob = classify(probability="cloud")
         """
-        if C.MSG_FULL:
+        if C["MSG_FULL"]:
             print(">>> classifying the image by lightgbm model")
         # create the subsampling mask according to the subsampling size
         if subsampling_mask is None:
@@ -518,7 +516,7 @@ class LightGBM(object):
         # only when the trigger is True and the subsampling_min is larger than 0
         if base and self.subsampling_min > 0:
             if len(sample_image_row_all) > self.subsampling_min:
-                np.random.seed(C.RANDOM_SEED) # set the random seed for the subsampling
+                np.random.seed(C["RANDOM_SEED"]) # set the random seed for the subsampling
                 idx = np.random.choice(len(sample_image_row_all), self.subsampling_min, replace=False)
                 sample_image_row_all = sample_image_row_all[idx]
                 sample_image_col_all = sample_image_col_all[idx]

@@ -14,7 +14,7 @@ import os
 import requests
 import click
 
-C = __import__(os.getenv("PHY_CONST_SRC", "constant"))
+from config import CONFIG as C
 
 def download_data_from_google_drive(source_url, destination):
     """
@@ -79,31 +79,31 @@ def download_all_data(update):
     
     # Download global data
     if (not os.path.exists(os.path.join(data_dir, 'global_gswo150.tif')) or update == 'y'):
-        download_data_from_drive(C.URL_global_gswo150, os.path.join(data_dir, 'global_gswo150.tif'))
+        download_data_from_drive(C["URL_global_gswo150"], os.path.join(data_dir, 'global_gswo150.tif'))
         print("Downloaded global water layer")
     else:
         print("Global water layer already exists")
     
     if (not os.path.exists(os.path.join(data_dir, 'global_gt30.tif'))or update == 'y'):
-        download_data_from_drive(C.URL_global_gt30, os.path.join(data_dir, 'global_gt30.tif'))
+        download_data_from_drive(C["URL_global_gt30"], os.path.join(data_dir, 'global_gt30.tif'))
         print("Downloaded global DEM")
     else:
         print("Global DEM already exists")
         
     if (not os.path.exists(os.path.join(model_dir, 'unet_ncf_l7.pt'))or update == 'y'):
-        download_data_from_drive(C.URL_unet_ncf_l7, os.path.join(model_dir, 'unet_ncf_l7.pt'))
+        download_data_from_drive(C["URL_unet_ncf_l7"], os.path.join(model_dir, 'unet_ncf_l7.pt'))
         print("Downloaded base UNet model for Landsat 4-7")
     else:
         print("Base UNet model for Landsat 4-7 already exists")
     
     if (not os.path.exists(os.path.join(model_dir, 'unet_ncf_l8.pt'))or update == 'y'):
-        download_data_from_drive(C.URL_unet_ncf_l8, os.path.join(model_dir, 'unet_ncf_l8.pt'))
+        download_data_from_drive(C["URL_unet_ncf_l8"], os.path.join(model_dir, 'unet_ncf_l8.pt'))
         print("Downloaded base UNet model for Landsat 8-9")
     else:
         print("Base UNet model for Landsat 8-9 already exists")
     
     if (not os.path.exists(os.path.join(model_dir, 'unet_ncf_s2.pt')) or update == 'y'):
-        download_data_from_drive(C.URL_unet_ncf_s2, os.path.join(model_dir, 'unet_ncf_s2.pt'))
+        download_data_from_drive(C["URL_unet_ncf_s2"], os.path.join(model_dir, 'unet_ncf_s2.pt'))
         print("Downloaded base UNet model for Sentinel-2")
     else:
         print("Base UNet model for Sentinel-2 already exists")

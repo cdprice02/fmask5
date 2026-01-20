@@ -3,22 +3,21 @@
 #SBATCH --job-name=fmask-phy
 #SBATCH --output=fmask_%j_%a.out
 #SBATCH --account=eros
-#SBATCH --time=1:00:00
-#SBATCH --cpus-per-task=16
+#SBATCH --time=2:00:00
+#SBATCH --cpus-per-task=4
 #SBATCH --mem-per-cpu=16G
-#SBATCH --array=0-8
+#SBATCH --array=0-7
 
 FIELDS_COUNT=5
 TASKS=(
-    "PHY" "0" "5" "0" "constant"
-    "PHY" "1" "2" "0" "constant"
-    "PHY" "1" "2" "0" "constant_water"
-    "UPL" "0" "5" "0" "constant"
-    "UPL" "1" "2" "0" "constant"
-    "UPL" "1" "2" "0" "constant_water"
-    "UPU" "0" "5" "0" "constant"
-    "UPU" "1" "2" "0" "constant"
-    "UPU" "1" "2" "0" "constant_water"
+    "PHY" "3" "5" "0" ""
+    "PHY" "3" "5" "0" "config/water_1.json"
+    "PHY" "3" "5" "0" "config/water_2.json"
+    "PHY" "3" "5" "0" "config/water_3.json"
+    "UPL" "3" "5" "0" ""
+    "UPL" "3" "5" "0" "config/water_1.json"
+    "UPL" "3" "5" "0" "config/water_2.json"
+    "UPL" "3" "5" "0" "config/water_3.json"
 )
 
 NUM_TASKS=$((${#TASKS[@]} / FIELDS_COUNT))
@@ -33,15 +32,22 @@ fmask_batch() {
     local dcloud="$2"
     local dshadow="$3"
     local dsnow="$4"
-    local constant="$5"
-
+    local config_path="$5"
     local in_dir="./data/in"
-    local out_dir="./data/out/HI/${model}/${constant}/${dcloud}_${dshadow}_${dsnow}"
+    local out_dir="./data/out/HI/${model}"
+
+    unset CONFIG_FILE_PATH
+    if [ "${config_path}" -ne "" ]; then
+        export CONFIG_FILE_PATH=${config_path}
+        out_dir+="/$(basename ${config_path%.*})"
+    fi
+
+    out_dir+="/${dcloud}_${dshadow}_${dsnow}"
 
     [ ! -d $out_dir ] && mkdir -p $out_dir
 
     for i in $(seq 1 $SLURM_CPUS_PER_TASK); do
-        PHY_CONST_SRC=${constant} python "./main/fmask_batch.py" --ci $i --cn $SLURM_CPUS_PER_TASK \
+        python main/fmask_batch.py --ci $i --cn $SLURM_CPUS_PER_TASK \
             --model ${model} --dcloud ${dcloud} --dshadow ${dshadow} --dsnow ${dsnow} \
             --imagedir $in_dir --output $out_dir --skip_existing no --save_metadata no \
             --display_fmask no --display_image no --print_summary yes &
@@ -55,6 +61,6 @@ model=${TASKS[$INDEX]}
 dcloud=${TASKS[$INDEX+1]}
 dshadow=${TASKS[$INDEX+2]}
 dsnow=${TASKS[$INDEX+3]}
-constant=${TASKS[$INDEX+4]}
+config_path=${TASKS[$INDEX+4]}
 
-fmask_batch $model $dcloud $dshadow $dsnow $constant
+fmask_batch $model $dcloud $dshadow $dsnow $config_path

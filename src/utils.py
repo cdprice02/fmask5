@@ -32,7 +32,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 from scipy.ndimage import convolve
 
-C = __import__(os.getenv("PHY_CONST_SRC", "constant"))
+from config import CONFIG as C
 
 # ignore the invalid errors
 np.seterr(invalid='ignore') 
@@ -63,9 +63,9 @@ def ndvi(red, nir):
     Returns:
         float: ndvi
     """
-    # _ndvi = (nir - red) / (nir + red + C.EPS)
+    # _ndvi = (nir - red) / (nir + red + C["EPS"])
     # Efficiently handle division by zero
-    _ndvi = np.where((nir + red + C.EPS) == 0, 0, (nir - red) / (nir + red + C.EPS))
+    _ndvi = np.where((nir + red + C["EPS"]) == 0, 0, (nir - red) / (nir + red + C["EPS"]))
     _ndvi[(nir + red) == 0] = 0.01  # fix unnormal pixels
     return _ndvi
 
@@ -79,10 +79,10 @@ def ndsi(green, swir):
     Returns:
         float: ndsi
     """
-    # _ndsi = (green - swir) / (green + swir + C.EPS)
+    # _ndsi = (green - swir) / (green + swir + C["EPS"])
     # Efficiently handle division by zero
     _ndsi = np.where(
-        (green + swir + C.EPS) == 0, 0, (green - swir) / (green + swir + C.EPS)
+        (green + swir + C["EPS"]) == 0, 0, (green - swir) / (green + swir + C["EPS"])
     )
     _ndsi[(green + swir) == 0] = 0.01  # fix unnormal pixels
     return _ndsi
@@ -98,9 +98,9 @@ def ndbi(nir, swir):
         float: ndbi
     """
     # ormalized Difference Build-up Index (NDBI)
-    # _ndbi = (swir - nir) / (swir + nir + C.EPS)  # not 0.01 any more because we will identify urban pixel using ndbi more than 0.
+    # _ndbi = (swir - nir) / (swir + nir + C["EPS"])  # not 0.01 any more because we will identify urban pixel using ndbi more than 0.
     # Efficiently handle division by zero
-    _ndbi = np.where((swir + nir + C.EPS) == 0, 0, (swir - nir) / (swir + nir + C.EPS))
+    _ndbi = np.where((swir + nir + C["EPS"]) == 0, 0, (swir - nir) / (swir + nir + C["EPS"]))
 
     return _ndbi
 
@@ -133,7 +133,7 @@ def whiteness(blue, green, red, satu):
         np.absolute(blue - visible_mean)
         + np.absolute(green - visible_mean)
         + np.absolute(red - visible_mean)
-    ) / (visible_mean + C.EPS)
+    ) / (visible_mean + C["EPS"])
     del visible_mean
     _whiteness[satu] = 0
     return _whiteness
@@ -179,7 +179,7 @@ def cdi(vre3, wnir, nnir):
     _scale = 10000
     var_ratio_8a_8 = (
         local_binary_pattern(
-            _scale * (wnir / (nnir + C.EPS)),
+            _scale * (wnir / (nnir + C["EPS"])),
             24,
             3,
             "var",
@@ -188,14 +188,14 @@ def cdi(vre3, wnir, nnir):
     )  # convert to int from float to avoid the warning from local_binary_pattern It is recommended to use this function with images of integer dtype.
     var_ratio_8a_7 = (
         local_binary_pattern(
-            _scale * (vre3 / (nnir + C.EPS)),
+            _scale * (vre3 / (nnir + C["EPS"])),
             24,
             3,
             "var",
         )
         / _scale**2
     )  # convert to int from float to avoid the warning from local_binary_pattern
-    return (var_ratio_8a_7 - var_ratio_8a_8) / (var_ratio_8a_8 + var_ratio_8a_7 + C.EPS)
+    return (var_ratio_8a_7 - var_ratio_8a_8) / (var_ratio_8a_8 + var_ratio_8a_7 + C["EPS"])
 
 def variation(nir, radius=5):
     """Spatial variation
@@ -335,7 +335,7 @@ def gen_dem(profile, des=None):
     Returns:
         numpy.ndarray: The generated DEM as a NumPy array.
     """
-    if C.MSG_FULL:
+    if C["MSG_FULL"]:
         print(">>> loading dem from gtopo30")
     path_dem = os.path.join(Path(__file__).parent.parent, "data", "global_gt30.tif")
     return warp2like(src=path_dem, like=profile, des=des)
@@ -351,7 +351,7 @@ def gen_slope(profile, des=None):
         numpy.ndarray or None: The warped slope raster as a numpy array if `des` is None, otherwise None.
     """
 
-    if C.MSG_FULL:
+    if C["MSG_FULL"]:
         print(">>> loading gtopo30-slope")
     return warp2like(src=os.path.join(Path(__file__).parent.parent, "data", "global_gt30_slope.tif"), like=profile, des=des)/100
 
@@ -365,7 +365,7 @@ def gen_aspect(profile, des=None):
     ndarray: The aspect raster aligned with the given profile.
     """
 
-    if C.MSG_FULL:
+    if C["MSG_FULL"]:
         print(">>> loading gtopo30-aspect")
     return warp2like(src=os.path.join(Path(__file__).parent.parent, "data", "global_gt30_aspect.tif"), like=profile, des=des)/100
     
@@ -388,7 +388,7 @@ def gen_gswo(profile, des=None):
         This function only works on the global layer in the package, which was produced by create_global_gswo150.py.
         The image should be within the global water layer at coordinates 78, -59.
     """
-    if C.MSG_FULL:
+    if C["MSG_FULL"]:
         print(">>> loading gswo")
     # Note: this function only works on the gobal layer in the package, which was produced by create_global_gswo150.py
     # check the image is within the global water layer, 78, -59
@@ -582,10 +582,10 @@ def read_reference_mask(des, dataset="l8biome", shape=None):
         ) as src:
             mask_manul = src.read(1)
         mask_manul_pre = mask_manul.copy()
-        mask_manul[mask_manul_pre == 128] = C.LABEL_CLEAR
-        mask_manul[mask_manul_pre >= 192] = C.LABEL_CLOUD
-        mask_manul[mask_manul_pre == 64] = C.LABEL_SHADOW
-        mask_manul[mask_manul_pre == 0] = C.LABEL_FILL
+        mask_manul[mask_manul_pre == 128] = C["LABEL_CLEAR"]
+        mask_manul[mask_manul_pre >= 192] = C["LABEL_CLOUD"]
+        mask_manul[mask_manul_pre == 64] = C["LABEL_SHADOW"]
+        mask_manul[mask_manul_pre == 0] = C["LABEL_FILL"]
 
     if dataset.lower() == "l8sparcs":
         # Value	Interpretation
@@ -603,9 +603,9 @@ def read_reference_mask(des, dataset="l8biome", shape=None):
         with rasterio.open(os.path.join(des_folder, des_name + "_mask.png")) as src:
             mask_manul = src.read(1)
         mask_manul_pre = mask_manul.copy()
-        mask_manul[mask_manul_pre >= 0] = C.LABEL_CLEAR
-        mask_manul[mask_manul_pre == 5] = C.LABEL_CLOUD
-        mask_manul[mask_manul_pre <= 1] = C.LABEL_SHADOW
+        mask_manul[mask_manul_pre >= 0] = C["LABEL_CLEAR"]
+        mask_manul[mask_manul_pre == 5] = C["LABEL_CLOUD"]
+        mask_manul[mask_manul_pre <= 1] = C["LABEL_SHADOW"]
 
     if dataset.lower() == "l895cloud":  # Value	Interpretation
         # 0      Non-cloud
@@ -619,9 +619,9 @@ def read_reference_mask(des, dataset="l8biome", shape=None):
             mask_manul = src.read(1)
 
         mask_manul_pre = mask_manul.copy()
-        mask_manul[mask_manul_pre == 0] = C.LABEL_CLEAR
-        mask_manul[mask_manul_pre == 1] = C.LABEL_CLOUD
-        mask_manul[mask_manul_pre >= 2] = C.LABEL_FILL  # since it is uint8, we use >=
+        mask_manul[mask_manul_pre == 0] = C["LABEL_CLEAR"]
+        mask_manul[mask_manul_pre == 1] = C["LABEL_CLOUD"]
+        mask_manul[mask_manul_pre >= 2] = C["LABEL_FILL"]  # since it is uint8, we use >=
 
     if dataset.upper() == "S2WHUCDPLUS":
         # see https://github.com/Neooolee/WHUS2-CD
@@ -646,9 +646,9 @@ def read_reference_mask(des, dataset="l8biome", shape=None):
                 )
 
         mask_manul_pre = mask_manul.copy()
-        mask_manul[mask_manul_pre == 128] = C.LABEL_CLEAR
-        mask_manul[mask_manul_pre == 255] = C.LABEL_CLOUD
-        mask_manul[mask_manul_pre == 0] = C.LABEL_FILL
+        mask_manul[mask_manul_pre == 128] = C["LABEL_CLEAR"]
+        mask_manul[mask_manul_pre == 255] = C["LABEL_CLOUD"]
+        mask_manul[mask_manul_pre == 0] = C["LABEL_FILL"]
 
     if dataset.upper() == "S2ALCD":
         # see https://zenodo.org/records/1460961
@@ -681,11 +681,11 @@ def read_reference_mask(des, dataset="l8biome", shape=None):
                     )  # only one band, and nearest is used to resample to smaller resolution
 
         mask_manul_pre = mask_manul.copy()
-        mask_manul[mask_manul_pre >= 5] = C.LABEL_CLEAR
-        mask_manul[mask_manul_pre == 2] = C.LABEL_CLOUD
-        mask_manul[mask_manul_pre == 3] = C.LABEL_CLOUD
-        mask_manul[mask_manul_pre == 4] = C.LABEL_SHADOW
-        mask_manul[mask_manul_pre == 0] = C.LABEL_FILL
+        mask_manul[mask_manul_pre >= 5] = C["LABEL_CLEAR"]
+        mask_manul[mask_manul_pre == 2] = C["LABEL_CLOUD"]
+        mask_manul[mask_manul_pre == 3] = C["LABEL_CLOUD"]
+        mask_manul[mask_manul_pre == 4] = C["LABEL_SHADOW"]
+        mask_manul[mask_manul_pre == 0] = C["LABEL_FILL"]
 
     if dataset.upper() == "S2IRIS":
         # Each mask are a 1022-by-1022-by-3 numpy array, with boolean one-hot encoding (each pixel has exactly one True value across the last
@@ -695,9 +695,9 @@ def read_reference_mask(des, dataset="l8biome", shape=None):
         mask_manul = np.load(os.path.join(des_folder, "REFERENCE", des_name + ".npy"))
         mask_manul_pre = mask_manul.copy()
         mask_manul = np.full((mask_manul.shape[0], mask_manul.shape[1]), 0)
-        mask_manul[mask_manul_pre[:, :, 0]] = C.LABEL_CLEAR
-        mask_manul[mask_manul_pre[:, :, 1]] = C.LABEL_CLOUD
-        mask_manul[mask_manul_pre[:, :, 2]] = C.LABEL_SHADOW
+        mask_manul[mask_manul_pre[:, :, 0]] = C["LABEL_CLEAR"]
+        mask_manul[mask_manul_pre[:, :, 1]] = C["LABEL_CLOUD"]
+        mask_manul[mask_manul_pre[:, :, 2]] = C["LABEL_SHADOW"]
  
     if dataset.upper() == "S2FMASK":
         # followed the Fmask labels
@@ -726,10 +726,10 @@ def read_reference_mask(des, dataset="l8biome", shape=None):
                 )
 
         mask_manul_pre = mask_manul.copy()
-        mask_manul[mask_manul_pre <=1]  = C.LABEL_CLEAR
-        mask_manul[mask_manul_pre ==3]  = C.LABEL_CLEAR
-        mask_manul[mask_manul_pre == 4] = C.LABEL_CLOUD
-        mask_manul[mask_manul_pre == 255] = C.LABEL_FILL
+        mask_manul[mask_manul_pre <=1]  = C["LABEL_CLEAR"]
+        mask_manul[mask_manul_pre ==3]  = C["LABEL_CLEAR"]
+        mask_manul[mask_manul_pre == 4] = C["LABEL_CLOUD"]
+        mask_manul[mask_manul_pre == 255] = C["LABEL_FILL"]
     return mask_manul
 
 def collect_sample_pixel(
@@ -762,12 +762,12 @@ def collect_sample_pixel(
     """
 
     if label_cloud is None:
-        label_cloud = C.LABEL_CLOUD
+        label_cloud = C["LABEL_CLOUD"]
     if label_fill is None:
-        label_fill = C.LABEL_FILL
+        label_fill = C["LABEL_FILL"]
 
     # Static seed for reproductivity
-    random.seed(C.RANDOM_SEED)
+    random.seed(C["RANDOM_SEED"])
     # select the sample pixels randomly
     sample_pixels_row, sample_pixels_col = np.where(reference != label_fill)
     # number or ratio
@@ -880,7 +880,7 @@ def collect_sample_patch(
             datacube_label = reference[:, r_off : r_off + size, c_off : c_off + size]
 
             # exclude pure dark chips
-            if np.count_nonzero(datacube_label < C.LABEL_FILL) == 0:
+            if np.count_nonzero(datacube_label < C["LABEL_FILL"]) == 0:
                 continue
 
             datacube_image = data.data[:, r_off : r_off + size, c_off : c_off + size]
@@ -963,7 +963,7 @@ def normalize_image(image, **kwargs):
     [min_val, max_val] = np.percentile(image_valid, percentile_range, method="linear")
     # normal_minmax_range = [min_val, max_val]
     # rescale
-    image_scaled = ((image - min_val) / (max_val - min_val + C.EPS)) * (
+    image_scaled = ((image - min_val) / (max_val - min_val + C["EPS"])) * (
         normal_scale_range[1] - normal_scale_range[0]
     ) + normal_scale_range[0]
     # bounding with the range
@@ -990,7 +990,7 @@ def normalize_datacube(datacube, **kwargs):
     srange = kwargs.get("srange", [-1, 1])
     obsmask = kwargs.get("obsmask", None)
     _datacube = datacube.copy() # not to alter the orginal values
-    if C.MSG_FULL:
+    if C["MSG_FULL"]:
         print(f">>> normalizing the datacube to {srange} with percentiles {percentiles}")
     # rescale the data cube
     for i in range(0, _datacube.shape[0]):
@@ -1267,12 +1267,12 @@ def show_fmask(fmask, title, path=None, color_bar=False):
 
     # convert the pixel value to the same as the index of label_dict
     cloud_mask_show = fmask.copy()
-    cloud_mask_show[fmask == C.LABEL_FILL] = 1
-    cloud_mask_show[fmask == C.LABEL_LAND] = 2
-    cloud_mask_show[fmask == C.LABEL_WATER] = 2
-    cloud_mask_show[fmask == C.LABEL_SNOW] = 2
-    cloud_mask_show[fmask == C.LABEL_SHADOW] = 3
-    cloud_mask_show[fmask == C.LABEL_CLOUD] = 4
+    cloud_mask_show[fmask == C["LABEL_FILL"]] = 1
+    cloud_mask_show[fmask == C["LABEL_LAND"]] = 2
+    cloud_mask_show[fmask == C["LABEL_WATER"]] = 2
+    cloud_mask_show[fmask == C["LABEL_SNOW"]] = 2
+    cloud_mask_show[fmask == C["LABEL_SHADOW"]] = 3
+    cloud_mask_show[fmask == C["LABEL_CLOUD"]] = 4
 
     # show the image
 

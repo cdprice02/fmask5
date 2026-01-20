@@ -9,8 +9,7 @@ from scipy.ndimage.filters import uniform_filter
 from sklearn.linear_model import LinearRegression
 from skimage.measure import label, regionprops
 
-import os
-C = __import__(os.getenv("PHY_CONST_SRC", "constant"))
+from config import CONFIG as C
 
 # np.seterr(invalid='ignore') # ignore the invalid errors
 
@@ -26,24 +25,24 @@ def mask_pcp(data: Data, satu):
     """
     # Basic test
     pcp = np.logical_and(
-        np.logical_and(data.get("ndvi") < C.PHY_PCP_NDVI_UPPER_LIMIT, data.get("ndsi") < C.PHY_PCP_NDSI_UPPER_LIMIT),
-        data.get("swir2") > C.PHY_PCP_SWIR2_LOWER_LIMIT,
+        np.logical_and(data.get("ndvi") < C["PHY_PCP_NDVI_UPPER_LIMIT"], data.get("ndsi") < C["PHY_PCP_NDSI_UPPER_LIMIT"]),
+        data.get("swir2") > C["PHY_PCP_SWIR2_LOWER_LIMIT"],
     )
 
     # Temperature
     if data.exist("tirs1"):
-        pcp = np.logical_and(pcp, data.get("tirs1") < C.PHY_PCP_TIRS_UPPER_LIMIT)
+        pcp = np.logical_and(pcp, data.get("tirs1") < C["PHY_PCP_TIRS_UPPER_LIMIT"])
 
     # Whiteness test
-    pcp = np.logical_and(pcp, data.get("whiteness") < C.PHY_PCP_WHITENESS_UPPER_LIMIT)
+    pcp = np.logical_and(pcp, data.get("whiteness") < C["PHY_PCP_WHITENESS_UPPER_LIMIT"])
 
     # Haze test
-    pcp = np.logical_and(pcp, np.logical_or(data.get("hot") > C.PHY_PCP_HOT_LOWER_LIMIT, satu))
+    pcp = np.logical_and(pcp, np.logical_or(data.get("hot") > C["PHY_PCP_HOT_LOWER_LIMIT"], satu))
 
     # Ratio 4/5 test
     pcp = np.logical_and(
         pcp,
-        (data.get("nir") / (data.get("swir1") + C.EPS)) > C.PHY_PCP_4_5_LOWER_LIMIT,
+        (data.get("nir") / (data.get("swir1") + C["EPS"])) > C["PHY_PCP_4_5_LOWER_LIMIT"],
     )
 
     return pcp
@@ -60,13 +59,13 @@ def mask_snow(data: Data):
     """
     snow = np.logical_and(
         np.logical_and(
-            data.get("ndsi") > C.PHY_SNOW_NDSI_LOWER_LIMIT,
-            data.get("nir") > C.PHY_SNOW_NIR_LOWER_LIMIT,
+            data.get("ndsi") > C["PHY_SNOW_NDSI_LOWER_LIMIT"],
+            data.get("nir") > C["PHY_SNOW_NIR_LOWER_LIMIT"],
         ),
-        data.get("green") > C.PHY_SNOW_GREEN_LOWER_LIMIT,
+        data.get("green") > C["PHY_SNOW_GREEN_LOWER_LIMIT"],
     )
     if data.exist("tirs1"):
-        snow = np.logical_and(snow, data.get("tirs1") < C.PHY_SNOW_TIRS_UPPER_LIMIT)
+        snow = np.logical_and(snow, data.get("tirs1") < C["PHY_SNOW_TIRS_UPPER_LIMIT"])
     return snow
 
 
@@ -85,7 +84,7 @@ def mask_abs_snow(data: Data, green_satu, snow, radius=167):
 
     # radius = 2*radius + 1 # as to the window size which is used directly
     # green_var = uniform_filter((data.get("green")*data.get("green")).astype(np.float32), radius, mode='reflect') - np.square(uniform_filter((data.get("green")).astype(np.float32), radius, mode='reflect')) # must convert to float32 or 64 to get the uniform_filter
-    # green_var[green_var<0] = C.EPS # Equal to 0
+    # green_var[green_var<0] = C["EPS"] # Equal to 0
     # absnow = np.logical_and(np.logical_and(np.sqrt(green_var)*np.sqrt(radius*radius/(radius*radius-1))*(1-data.get("ndsi")) < 0.0009, snow), ~green_satu) # np.sqrt(green_var)*(1-ndsi) < 9 is SCSI
     # Note np.sqrt(radius*radius/(radius*radius-1)) is to convert it as same as that of matlab function, stdflit, see https://nickc1.github.io/python,/matlab/2016/05/17/Standard-Deviation-(Filters)-in-Matlab-and-Python.html
 
@@ -105,13 +104,13 @@ def mask_abs_snow(data: Data, green_satu, snow, radius=167):
             mode="reflect",
         )
     )  # must convert to float32 or 64 to get the uniform_filter .astype(np.float32)
-    green_var[green_var < 0] = C.EPS  # Equal to 0
+    green_var[green_var < 0] = C["EPS"]  # Equal to 0
     absnow = np.logical_and(
         np.logical_and(
             np.sqrt(green_var)
             * np.sqrt(radius**2 / (radius**2 - 1))
             * (1 - data.get("ndsi"))
-            < C.PHY_ABS_SNOW_UPPER_LIMIT,
+            < C["PHY_ABS_SNOW_UPPER_LIMIT"],
             snow,
         ),
         ~green_satu,
@@ -219,7 +218,7 @@ def normalize_temperature(temperature, dem, dem_min, dem_max, clear_land, number
     # clear_land = np.logical_and(clear_land, obsmask) # updated with the mask at the first
     # only use the high confident levels to estimate
     [temp_low, temp_high] = np.percentile(
-        _temperature[clear_land], [C.LOW_LEVEL, C.HIGH_LEVEL]
+        _temperature[clear_land], [C["LOW_LEVEL"], C["HIGH_LEVEL"]]
     )
     samples = stratify_samples(
         np.logical_and(
@@ -307,7 +306,7 @@ def stratify_samples(clear, data, data_min, data_max, step, number, distance=15)
                     np.min(
                         [number, len(df_clear_zone.index)]
                     ),  # when the number of data is smaller than that we expected
-                    random_state=C.RANDOM_SEED,  # static seed for random
+                    random_state=C["RANDOM_SEED"],  # static seed for random
                     ignore_index=True,
                 )  # unnecessery to update the index
 
@@ -333,14 +332,14 @@ def mask_water(data: Data, obsmask, snow, swo_erosion_radius = 0):
     water = np.logical_or(
         np.logical_and(
             np.logical_and(
-                data.get("ndvi") > C.PHY_WATER_A_NDVI_LOWER_LIMIT,
-                data.get("ndvi") < C.PHY_WATER_A_NDVI_UPPER_LIMIT,
+                data.get("ndvi") > C["PHY_WATER_A_NDVI_LOWER_LIMIT"],
+                data.get("ndvi") < C["PHY_WATER_A_NDVI_UPPER_LIMIT"],
             ),
-            data.get("nir") < C.PHY_WATER_A_NIR_UPPER_LIMIT,
+            data.get("nir") < C["PHY_WATER_A_NIR_UPPER_LIMIT"],
         ),
         np.logical_and(
-            data.get("ndvi") < C.PHY_WATER_B_NDVI_UPPER_LIMIT,
-            data.get("nir") < C.PHY_WATER_B_NIR_UPPER_LIMIT,
+            data.get("ndvi") < C["PHY_WATER_B_NDVI_UPPER_LIMIT"],
+            data.get("nir") < C["PHY_WATER_B_NIR_UPPER_LIMIT"],
         ),
     )
     water = np.logical_and(water, obsmask)
@@ -354,7 +353,7 @@ def mask_water(data: Data, obsmask, snow, swo_erosion_radius = 0):
             swo[~utils.erode(swo>0, swo_erosion_radius)]= 0 # note this will change the orginal layer!
         # low level (17.5%) to exclude the commssion errors as water.
         # 5% tolerances.
-        swo_thrd = np.percentile(swo[water], C.LOW_LEVEL, method="midpoint") - 5
+        swo_thrd = np.percentile(swo[water], C["LOW_LEVEL"], method="midpoint") - 5
         # merge the spectral-based water mask and the swo-based water mask
         if swo_thrd > 0:
             water = np.logical_or(
@@ -372,7 +371,7 @@ def probability_cirrus(cirrus):
     Returns:
         float: Cloud probability of cirrus
     """
-    prob_cir = np.clip(cirrus * C.PHY_CIRRUS_MULT, 0, None)
+    prob_cir = np.clip(cirrus * C["PHY_CIRRUS_MULT"], 0, None)
     return prob_cir
 
 
@@ -423,10 +422,10 @@ def probability_land_temperature(temperature, clear_land):
     """
 
     [temp_low, temp_high] = np.percentile(
-        temperature[clear_land], [C.LOW_LEVEL, C.HIGH_LEVEL]
+        temperature[clear_land], [C["LOW_LEVEL"], C["HIGH_LEVEL"]]
     )
-    temp_low = temp_low - C.PHY_LAND_TEMP_SPAN
-    temp_high = temp_high + C.PHY_LAND_TEMP_SPAN
+    temp_low = temp_low - C["PHY_LAND_TEMP_SPAN"]
+    temp_high = temp_high + C["PHY_LAND_TEMP_SPAN"]
     prob_land_temp = (temp_high - temperature) / (temp_high - temp_low)
     prob_land_temp = np.clip(prob_land_temp, 0, None)
     return prob_land_temp
@@ -444,8 +443,8 @@ def probability_water_temperature(temperature, clear_water):
 
     """
     prob_water_temp = (
-        np.percentile(temperature[clear_water], C.HIGH_LEVEL) - temperature
-    ) * C.PHY_WATER_TEMP_MULT
+        np.percentile(temperature[clear_water], C["HIGH_LEVEL"]) - temperature
+    ) * C["PHY_WATER_TEMP_MULT"]
     prob_water_temp = np.clip(prob_water_temp, 0, None)
     return prob_water_temp
 
@@ -460,7 +459,7 @@ def probability_water_brightness(data: Data):
     Returns:
     prob_water_bright (numpy.ndarray): The probability of water brightness for each pixel.
     """
-    prob_water_bright = data.get("swir1") * C.PHY_WATER_BRIGHTNESS_MULT
+    prob_water_bright = data.get("swir1") * C["PHY_WATER_BRIGHTNESS_MULT"]
     prob_water_bright = np.clip(prob_water_bright, 0, 1)
     return prob_water_bright
 
@@ -478,10 +477,10 @@ def probability_land_brightness(data, clear_land):
 
     """
     [hot_low, hot_high] = np.percentile(
-        data.get("hot")[clear_land], [C.LOW_LEVEL, C.HIGH_LEVEL]
+        data.get("hot")[clear_land], [C["LOW_LEVEL"], C["HIGH_LEVEL"]]
     )
-    hot_low = hot_low - C.PHY_LAND_BRIGHTNESS_SPAN
-    hot_high = hot_high + C.PHY_LAND_BRIGHTNESS_SPAN
+    hot_low = hot_low - C["PHY_LAND_BRIGHTNESS_SPAN"]
+    hot_high = hot_high + C["PHY_LAND_BRIGHTNESS_SPAN"]
     prob_land_bright = (data.get("hot") - hot_low) / (hot_high - hot_low)
     prob_land_bright = np.clip(
         prob_land_bright, 0, 1
@@ -490,7 +489,7 @@ def probability_land_brightness(data, clear_land):
 
 
 def flood_fill_shadow(nir_full, swir1_full, abs_land, obsmask,
-                      threshold=C.PHY_SHADOW_FLOOD_FILL_THRESHOLD_1, nir_background=None, swir1_background=None):
+                      threshold=C["PHY_SHADOW_FLOOD_FILL_THRESHOLD_1"], nir_background=None, swir1_background=None):
     """
     Masks potential shadow areas in the input images based on flood fill method.
 
@@ -510,11 +509,11 @@ def flood_fill_shadow(nir_full, swir1_full, abs_land, obsmask,
     # nir_full = np.maximum(0, nir_full)  # avoiding negative values
     # swir1_full = np.maximum(0, swir1_full)  # avoiding negative values
     if nir_background is None:
-        nir_background = np.percentile(nir_full[abs_land], C.LOW_LEVEL)
+        nir_background = np.percentile(nir_full[abs_land], C["LOW_LEVEL"])
     else:
         nir_background = nir_full[obsmask].min() # avoiding negative values
     if swir1_background is None:
-        swir1_background = np.percentile(swir1_full[abs_land], C.LOW_LEVEL)
+        swir1_background = np.percentile(swir1_full[abs_land], C["LOW_LEVEL"])
     else:
         swir1_background = swir1_full[obsmask].min() # avoiding negative values
     
@@ -525,7 +524,7 @@ def flood_fill_shadow(nir_full, swir1_full, abs_land, obsmask,
         np.minimum((nir_filled - nir_full)/nir_filled,  (swir1_filled - swir1_full)/swir1_filled) > threshold
     )
 
-def flood_fill_shadow2(nir_full, swir1_full, abs_land, obsmask, threshold=C.PHY_SHADOW_FLOOD_FILL_THRESHOLD_2, nir_background=None, swir1_background=None):
+def flood_fill_shadow2(nir_full, swir1_full, abs_land, obsmask, threshold=C["PHY_SHADOW_FLOOD_FILL_THRESHOLD_2"], nir_background=None, swir1_background=None):
     """
     Masks potential shadow areas in the input images based on flood fill method.
 
@@ -545,11 +544,11 @@ def flood_fill_shadow2(nir_full, swir1_full, abs_land, obsmask, threshold=C.PHY_
     # nir_full = np.maximum(0, nir_full)  # avoiding negative values
     # swir1_full = np.maximum(0, swir1_full)  # avoiding negative values
     if nir_background is None:
-        nir_background = np.percentile(nir_full[abs_land], C.LOW_LEVEL)
+        nir_background = np.percentile(nir_full[abs_land], C["LOW_LEVEL"])
     else:
         nir_background = nir_full[obsmask].min() # avoiding negative values
     if swir1_background is None:
-        swir1_background = np.percentile(swir1_full[abs_land], C.LOW_LEVEL)
+        swir1_background = np.percentile(swir1_full[abs_land], C["LOW_LEVEL"])
     else:
         swir1_background = swir1_full[obsmask].min() # avoiding negative values
         
@@ -626,7 +625,7 @@ def compute_cloud_probability_layers(image, min_clear, swo_erosion_radius=0, wat
             dem_max=_dem_max,
         )
         pcp = np.logical_or(
-            pcp, cirrus > C.PHY_CIRRUS_LOWER_LIMIT
+            pcp, cirrus > C["PHY_CIRRUS_LOWER_LIMIT"]
         )  # Update the PCPs with cirrus band TOA > 0.01, which may be cloudy as well
 
     # ABS CLEAR PIXELs with the observation extent
@@ -833,7 +832,7 @@ def convert2seedgroups(
     seed_cloud_prob[seed_cloud_prob > prob_range[1]] = prob_range[1]
 
     if equal_num:
-        np.random.seed(C.RANDOM_SEED)
+        np.random.seed(C["RANDOM_SEED"])
         # same number of seed pixels between cloud and non-cloud
         if seed_cloud_prob.size > seed_noncloud_prob.size:
             seed_cloud_prob = seed_cloud_prob[
@@ -944,7 +943,7 @@ def clear_probability(prob, clear):
     float: The clear probability.
 
     """
-    return np.percentile(prob[clear], C.HIGH_LEVEL)
+    return np.percentile(prob[clear], C["HIGH_LEVEL"])
 
 # define functions inside
 def shift_by_sensor(coords, height, view_zenith, view_azimuth, resolution):
@@ -1434,7 +1433,7 @@ def find_neighbor_cloud_base_height(icloud, num_close_clouds, cloud,
             if np.std(close_cloud_heights) >= 1000: # the height difference is too large see MFmask paper
                 return 0.0  # Heights are too different
             else:
-                record_close_cloud_base_height = np.percentile(close_cloud_heights, C.HIGH_LEVEL)
+                record_close_cloud_base_height = np.percentile(close_cloud_heights, C["HIGH_LEVEL"])
                 
                 # Validate height range
                 if cloud_height_min <= record_close_cloud_base_height <= cloud_height_max:
@@ -1554,7 +1553,7 @@ def match_cloud2shadow(
         ndarray: Binary mask indicating the matched shadow areas.
     """
     # make sure the random sampling is the same fore reproducibility
-    np.random.seed(C.RANDOM_SEED)
+    np.random.seed(C["RANDOM_SEED"])
     pcloud = cloud_objects > 0
     # pshadow[pcloud] = 0  # exclude cloud from the potential shadow; # we like potential shadow, not cloud,
     # pcloud[pshadow] = 0 # when counnting the similarity, we need to exclude the shadow pixels from the cloud mask, since we may punish the pixels over clouds
@@ -1662,7 +1661,7 @@ def match_cloud2shadow(
         if dem_proj:
             # get the surface elevation underneath the cloud object
             # cloud_surface_ele = np.percentile(
-            #    ele[cloud_coords[:, 0], cloud_coords[:, 1]], C.HIGH_LEVEL
+            #    ele[cloud_coords[:, 0], cloud_coords[:, 1]], C["HIGH_LEVEL"]
             #)
             # Compared to Fmask 4.6, we use the mininum elevation of the cloud object to estimate the cloud surface elevation, since we have less commisison from snow/ice right now
             # cloud_surface_ele_max = np.percentile(
@@ -1770,10 +1769,10 @@ def match_cloud2shadow(
             # 0.5 is used to punlish the projected pixels over cloud or filled layer, where there is no way to determine the potential cloud shadow:
             # num_match2shadow + 0.5 * (num_match2cloud + num_match2filled) + num_out_image
             # total number that is the total pixel (exclude original cloud): np.count_nonzero(shadow_projected) + num_out_image
-            # C.EPS is used to avoid the division by zero
+            # C["EPS"] is used to avoid the division by zero
             # + num_out_image
-            # similarity_matched = (num_match2shadow + (1.0 - penalty_weight) * (num_match2cloud + num_match2filled + num_out_image))/(np.count_nonzero(shadow_projected) + num_out_image + C.EPS)
-            similarity_matched = (num_match2shadow + (1.0 - penalty_weight) * (num_match2filled + num_out_image))/(np.count_nonzero(shadow_projected) + num_out_image + C.EPS)
+            # similarity_matched = (num_match2shadow + (1.0 - penalty_weight) * (num_match2cloud + num_match2filled + num_out_image))/(np.count_nonzero(shadow_projected) + num_out_image + C["EPS"])
+            similarity_matched = (num_match2shadow + (1.0 - penalty_weight) * (num_match2filled + num_out_image))/(np.count_nonzero(shadow_projected) + num_out_image + C["EPS"])
 
             # if the estimated height is over the record_close_cloud_base_height, we punish the similarity, with the ratio of the neigbor cloud height to the current cloud height
             # if the record_close_cloud_base_height is not zero, it means we have found the cloud shadow, in the previous clouds
@@ -2021,7 +2020,7 @@ class Physical:
             self.options_cirrus = [False]
             prob_var, _, _ = self.select_cloud_probability(adjusted=False)
             prob_var = prob_var / (
-                prob_temp + C.EPS
+                prob_temp + C["EPS"]
             )  # select_cloud_prob does not support the rule only var
 
             # restore the orginal options
@@ -2308,7 +2307,7 @@ class Physical:
                             prob_range=prob_range,
                             prob_bin=bin_width,
                         )
-                        if C.MSG_FULL:
+                        if C["MSG_FULL"]:
                             print(
                                 f">>> cloud probability ({str(var)[0]}{str(tmp)[0]}{str(cir)[0]}) | overlap: {ol:.9f} | optimal threshold: {opt_thrd:.9f}"
                             )
@@ -2344,7 +2343,7 @@ class Physical:
                         opt_thrd = self.threshold # default threshold
                     # update the optimal model if the overlap rate is decreased
                     if (ol_record == 1) or (
-                        ((ol_record - ol) / (ol_record + C.EPS)) > self.overlap
+                        ((ol_record - ol) / (ol_record + C["EPS"])) > self.overlap
                     ):  # 2 % decreased
                         ol_record = ol  # that cannot use .copy()
                         prob_record = mask_prob.copy()
@@ -2356,7 +2355,7 @@ class Physical:
         ):  # only for the seed pixels which are used to find the optimal threshold
             self.options = options_record  # update the options determined
             self.threshold = threshold_record  # update the threshold determined
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(
                     f">>> optimal cloud probability ({str(options_record[0])[0]}{str(options_record[1])[0]}{str(options_record[2])[0]}) | optimal threshold: {threshold_record:.2f}"
                 )
@@ -2401,7 +2400,7 @@ class Physical:
             self.image.resolution,
         )
         
-        if C.MSG_FULL:
+        if C["MSG_FULL"]:
             print(">>> matching cloud shadows")
         
         # only when we have the data for thermal band, we can use thermal band to narrow the height of the cloud and estimate 3D cloud object
@@ -2459,4 +2458,4 @@ class Physical:
         # the overlap density between cloud and non-cloud pixels to move further
         self.overlap = overlap  # 0% overlap increasing compared to the previous test to alter the physical models
         # extremely cold cloud
-        self.threshold_cold_cloud = C.PHY_COLD_CLOUD_THRESHOLD
+        self.threshold_cold_cloud = C["PHY_COLD_CLOUD_THRESHOLD"]

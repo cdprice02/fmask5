@@ -16,7 +16,7 @@ from bitlib import BitLayer
 import numpy as np
 from skimage.filters import threshold_otsu
 
-C = __import__(os.getenv("PHY_CONST_SRC", "constant"))
+from config import CONFIG as C
 np.seterr(invalid='ignore') # ignore the invalid errors
 
 class Fmask(object):
@@ -79,13 +79,13 @@ class Fmask(object):
 
     # the valid pixel values in reference data
     valid_class_labels = [
-        C.LABEL_CLEAR,
-        C.LABEL_WATER,
-        C.LABEL_LAND,
-        C.LABEL_SNOW,
-        C.LABEL_SHADOW,
-        C.LABEL_CLOUD,
-        C.LABEL_FILL,
+        C["LABEL_CLEAR"],
+        C["LABEL_WATER"],
+        C["LABEL_LAND"],
+        C["LABEL_SNOW"],
+        C["LABEL_SHADOW"],
+        C["LABEL_CLOUD"],
+        C["LABEL_FILL"],
     ]
 
     # sets of displaying figures to show the progress of the cloud masking
@@ -136,19 +136,19 @@ class Fmask(object):
         else:
             mask = np.zeros(self.image.obsmask.shape, dtype="uint8")
             if self.physical is not None:
-                mask[self.physical.water] = C.LABEL_WATER
-                mask[self.physical.snow] = C.LABEL_SNOW
+                mask[self.physical.water] = C["LABEL_WATER"]
+                mask[self.physical.snow] = C["LABEL_SNOW"]
             if self.shadow is not None:
                 if self.buffer_shadow > 0:
-                    mask[utils.dilate(self.shadow, radius=self.buffer_shadow)] = C.LABEL_SHADOW
+                    mask[utils.dilate(self.shadow, radius=self.buffer_shadow)] = C["LABEL_SHADOW"]
                 else:
-                    mask[self.shadow] = C.LABEL_SHADOW
+                    mask[self.shadow] = C["LABEL_SHADOW"]
             # the cloud mask must exist
             if self.buffer_cloud > 0:
-                mask[utils.dilate(self.cloud.last, radius=self.buffer_cloud)] = C.LABEL_CLOUD
+                mask[utils.dilate(self.cloud.last, radius=self.buffer_cloud)] = C["LABEL_CLOUD"]
             else:
-                mask[self.cloud.last] = C.LABEL_CLOUD
-            mask[self.image.filled] = C.LABEL_FILL
+                mask[self.cloud.last] = C["LABEL_CLOUD"]
+            mask[self.image.filled] = C["LABEL_FILL"]
             # convert to uint8
             mask = mask.astype("uint8")
             return mask
@@ -478,7 +478,7 @@ class Fmask(object):
             self.algorithm in {"interaction", "physical"} and (not self.physical.activated)
         ):
             # Skip cloud shadow matching when cloud coverage is too high
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(">>> skipping cloud shadow matching due to high cloud coverage.")
             self.mask_shadow_rest()
         else:
@@ -571,7 +571,7 @@ class Fmask(object):
             # if not self.physical.activated:
             #    return
             # morphology-based, follow Qiu et al., 2019 RSE
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(">>> postprocessing with morphology-based elimination")
             # get the potential false positive cloud pixels
             pfpl = self.mask_potential_bright_surface()
@@ -606,7 +606,7 @@ class Fmask(object):
             # only when the physical model is activated
             # if not self.physical.activated:
             #    return
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(">>> postprocessing with UNet-based elimination")
             # Use dilated version only if needed
             unet_cloud = self.cloud.first
@@ -616,7 +616,7 @@ class Fmask(object):
             # after postprocessing
             self.cloud.append(cloud_objects >0)
         elif (postprocess == "morphology_unet"):
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(">>> postprocessing with morphology&unet-based elimination")
             # Use dilated version only if needed
             unet_cloud = self.cloud.first
@@ -773,7 +773,7 @@ class Fmask(object):
         label_filled    = self.cloud_model_classes.index("filled")
 
         # load the pretrained unet model if it will be used
-        if C.MSG_FULL:
+        if C["MSG_FULL"]:
             print(f">>> loading {self.base_machine_learning} as base machine learning model")
             print(f">>> loading {self.tune_machine_learning} as tune machine learning model")
     
@@ -784,7 +784,7 @@ class Fmask(object):
             self.lightgbm_cloud.load_model()
 
         # masking initilized clouds
-        # if C.MSG_FULL:
+        # if C["MSG_FULL"]:
         #    print(f">>> initilizing cloud mask by {self.base_machine_learning}")
         # get the init mask created by the machine learning model
         # single classifier is used as base machine learning model
@@ -835,7 +835,7 @@ class Fmask(object):
             # count the labels of cloud and non-cloud
             # self-learning progress
             for i in range(1, self.max_iteration + 1):
-                if C.MSG_FULL:
+                if C["MSG_FULL"]:
                     print(
                         f">>> adjusting physical rules {i:02d}/{self.max_iteration:02d}"
                     )
@@ -892,7 +892,7 @@ class Fmask(object):
                     return
 
                 # continue to classify and tune the machine learning model
-                if C.MSG_FULL:
+                if C["MSG_FULL"]:
                     print(f">>> tunning machine learning model {i:02d}/{self.max_iteration:02d}")
                 # tune the unet and return the cloud mask and cloud probability layer by the updated model
                 if self.tune_machine_learning == "unet":
@@ -959,7 +959,7 @@ class Fmask(object):
 
                 # reach to the end iteration
                 if (i == self.max_iteration):
-                    if C.MSG_FULL:
+                    if C["MSG_FULL"]:
                         print(
                             ">>> stop iterating at the end"
                         )
@@ -967,7 +967,7 @@ class Fmask(object):
 
                 # stop by the disagreement rate
                 if disagree_ml < self.disagree_rate:
-                    if C.MSG_FULL:
+                    if C["MSG_FULL"]:
                         print(
                             f">>> stop iterating with disagreement = {disagree_ml:.2f} less than {self.disagree_rate}"
                         )
@@ -977,7 +977,7 @@ class Fmask(object):
                 count_cloud = np.count_nonzero(cloud_ml == label_cloud)
                 count_noncloud = np.count_nonzero(cloud_ml == label_noncloud)
                 if (count_cloud < self.physical.min_clear) | (count_noncloud < self.physical.min_clear):
-                    if C.MSG_FULL:
+                    if C["MSG_FULL"]:
                         print(
                             f">>> stop iterating with less representive seed pixels for cloud = {count_cloud} for noncloud = {count_noncloud}"
                         )
@@ -1172,7 +1172,7 @@ class Fmask(object):
                 self.image.destination, self.image.name + "_" + endname.upper() + ".tif"
             ),
         )
-        if C.MSG_FULL:
+        if C["MSG_FULL"]:
             print(f">>> saved fmask layer as geotiff to {self.image.destination}")
         
 
@@ -1202,7 +1202,7 @@ class Fmask(object):
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         # print(df_accuracy)
         df_accuracy.to_csv(path)
-        if C.MSG_FULL:
+        if C["MSG_FULL"]:
             print(f">>> saved metadata as csv file to {path}")
         
 
@@ -1228,27 +1228,27 @@ class Fmask(object):
         )
         # when we do not get the accruacy of shadow layer
         if not shadow:
-            mmask[mmask == C.LABEL_SHADOW] = (
-                C.LABEL_CLEAR
+            mmask[mmask == C["LABEL_SHADOW"]] = (
+                C["LABEL_CLEAR"]
             )  # we consider shadow as clear
-            emask[emask == C.LABEL_SHADOW] = (
-                C.LABEL_CLEAR
+            emask[emask == C["LABEL_SHADOW"]] = (
+                C["LABEL_CLEAR"]
             )  # we consider shadow as clear
-        emask[emask == C.LABEL_LAND] = (
-            C.LABEL_CLEAR
+        emask[emask == C["LABEL_LAND"]] = (
+            C["LABEL_CLEAR"]
         )  # update as to clear label to validate
-        emask[emask == C.LABEL_WATER] = (
-            C.LABEL_CLEAR
+        emask[emask == C["LABEL_WATER"]] = (
+            C["LABEL_CLEAR"]
         )  # update as to clear label to validate
-        emask[emask == C.LABEL_SNOW] = (
-            C.LABEL_CLEAR
+        emask[emask == C["LABEL_SNOW"]] = (
+            C["LABEL_CLEAR"]
         )  # update as to clear label to validate
         # same extent between the manual mask and the ensemble mask
-        mmask[emask == C.LABEL_FILL] = C.LABEL_FILL  # same extent with the manual mask
-        emask[mmask == C.LABEL_FILL] = C.LABEL_FILL  # same extent with the manual mask
+        mmask[emask == C["LABEL_FILL"]] = C["LABEL_FILL"]  # same extent with the manual mask
+        emask[mmask == C["LABEL_FILL"]] = C["LABEL_FILL"]  # same extent with the manual mask
 
-        mmask = mmask[mmask != C.LABEL_FILL]
-        emask = emask[emask != C.LABEL_FILL]
+        mmask = mmask[mmask != C["LABEL_FILL"]]
+        emask = emask[emask != C["LABEL_FILL"]]
 
         # Cloud, Shadow, and Clear
         csc_overall = accuracy_score(mmask, emask)
@@ -1256,28 +1256,28 @@ class Fmask(object):
         cloud_precision, shadow_precision = precision_score(
             mmask,
             emask,
-            labels=[C.LABEL_CLOUD, C.LABEL_SHADOW],
+            labels=[C["LABEL_CLOUD"], C["LABEL_SHADOW"]],
             average=None,
             zero_division=1.0,
         )
         cloud_recall, shadow_recall = recall_score(
             mmask,
             emask,
-            labels=[C.LABEL_CLOUD, C.LABEL_SHADOW],
+            labels=[C["LABEL_CLOUD"], C["LABEL_SHADOW"]],
             average=None,
             zero_division=1.0,
         )
 
         # Cloud, and Non-cloud (cloud shadow and clear)
-        cn_overall = accuracy_score(mmask == C.LABEL_CLOUD, emask == C.LABEL_CLOUD)
+        cn_overall = accuracy_score(mmask == C["LABEL_CLOUD"], emask == C["LABEL_CLOUD"])
 
         # Cloud percentage
-        cloud_percentage_pred = np.count_nonzero(emask == C.LABEL_CLOUD) / len(emask)
-        cloud_percentage_true = np.count_nonzero(mmask == C.LABEL_CLOUD) / len(mmask)
+        cloud_percentage_pred = np.count_nonzero(emask == C["LABEL_CLOUD"]) / len(emask)
+        cloud_percentage_true = np.count_nonzero(mmask == C["LABEL_CLOUD"]) / len(mmask)
 
         # Cloud shadow percentage
-        shadow_percentage_pred = np.count_nonzero(emask == C.LABEL_SHADOW) / len(emask)
-        shadow_percentage_true = np.count_nonzero(mmask == C.LABEL_SHADOW) / len(mmask)
+        shadow_percentage_pred = np.count_nonzero(emask == C["LABEL_SHADOW"]) / len(emask)
+        shadow_percentage_true = np.count_nonzero(mmask == C["LABEL_SHADOW"]) / len(mmask)
 
         # Number of observaiont pixels
         num_obs_pred = len(emask)
@@ -1387,7 +1387,7 @@ class Fmask(object):
         pshadow = np.zeros(self.image.obsmask.shape, dtype="uint8")
         for ialg in potential:
             if ialg.lower() == "flood":
-                if C.MSG_FULL:
+                if C["MSG_FULL"]:
                     print(">>> masking potential cloud shadow by flood-fill")
                 shadow_mask_binary = self.mask_shadow_flood(topo=topo, threshold = threshold)
             elif ialg.lower() == "unet":
@@ -1420,7 +1420,7 @@ class Fmask(object):
     def display_fmask(self, endname = "", path=None, skip=True):
         """display the fmask, with clear, cloud, shadow, and fill"""
         if skip and os.path.isfile(path):
-            if C.MSG_FULL:
+            if C["MSG_FULL"]:
                 print(f">>> {path} exists, skip to generate the figure of Fmask")
             return
         emask = self.ensemble_mask
@@ -1428,7 +1428,7 @@ class Fmask(object):
         if emask is None:
             emask, _ = utils.read_raster(path.replace(".png", ".tif"))
         utils.show_fmask(emask, endname, path)
-        if C.MSG_FULL:
+        if C["MSG_FULL"]:
             print(f">>> saved cloud/shadow visualization as PNG file to {path}")
         
     def print_summary(self):
@@ -1441,16 +1441,16 @@ class Fmask(object):
         mask = self.ensemble_mask
 
         # Count occurrences of each label
-        num_obs = np.count_nonzero(mask != C.LABEL_FILL)
+        num_obs = np.count_nonzero(mask != C["LABEL_FILL"])
         if num_obs == 0:
             print("Summary: No valid observations.")
             return
 
-        num_cloud = np.count_nonzero(mask == C.LABEL_CLOUD)
-        num_shadow = np.count_nonzero(mask == C.LABEL_SHADOW)
-        num_snow = np.count_nonzero(mask == C.LABEL_SNOW)
+        num_cloud = np.count_nonzero(mask == C["LABEL_CLOUD"])
+        num_shadow = np.count_nonzero(mask == C["LABEL_SHADOW"])
+        num_snow = np.count_nonzero(mask == C["LABEL_SNOW"])
         num_clear = num_obs - num_cloud - num_shadow - num_snow # saving the time to count the clear pixels
-        # num_clear = np.count_nonzero((mask == C.LABEL_LAND) | (mask == C.LABEL_WATER))
+        # num_clear = np.count_nonzero((mask == C["LABEL_LAND"]) | (mask == C["LABEL_WATER"]))
         # Print summary in one line with formatted percentages
         print("Summary: Cloud = {:.2%}, Shadow = {:.2%}, Snow = {:.2%}, Clear = {:.2%}".format(
             num_cloud / num_obs, num_shadow / num_obs, num_snow / num_obs, num_clear / num_obs))

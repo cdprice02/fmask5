@@ -12,9 +12,11 @@ fmask_batch() {
     local out_dir="./data/out/HI/${model}"
 
     unset CONFIG_FILE_PATH
-    if [ "${config_path}" -ne "" ]; then
+    if [ ! -z ${config_path} ]; then
         export CONFIG_FILE_PATH=${config_path}
         out_dir+="/$(basename ${config_path%.*})"
+    else
+        out_dir+="/default"
     fi
 
     out_dir+="/${dcloud}_${dshadow}_${dsnow}"
